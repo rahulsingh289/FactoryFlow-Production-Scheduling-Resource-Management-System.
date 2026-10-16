@@ -1,0 +1,7 @@
+.DS_Store
+*.o
+os-engine/factory_resource_engine
+node_modules/
+dist/
+build/
+*.code-workspace
