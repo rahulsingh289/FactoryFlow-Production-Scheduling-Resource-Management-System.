@@ -1,0 +1,79 @@
+====================================================
+   PRODUCTION SCHEDULER - WINDOWS QUICK START
+====================================================
+
+METHOD 1: EASIEST WAY (Double-Click)
+-------------------------------------
+1. Find the file "run.bat" in the project folder
+2. Double-click it
+3. Wait for it to compile and start
+4. Browser will open automatically to http://localhost:3000
+
+If browser doesn't open automatically, manually go to:
+http://localhost:3000
+
+
+METHOD 2: Using Command Prompt
+-------------------------------
+1. Open Command Prompt (cmd)
+2. Navigate to project folder:
+   cd C:\path\to\Smart_Factory_Production_Scheduler_50pct
+3. Run:
+   run.bat
+4. Open browser to http://localhost:3000
+
+
+METHOD 3: Using PowerShell
+---------------------------
+1. Open PowerShell
+2. Navigate to project folder:
+   cd C:\path\to\Smart_Factory_Production_Scheduler_50pct
+3. Run:
+   .\run.ps1
+4. Open browser to http://localhost:3000
+
+
+REQUIREMENTS (Install these first if not working):
+---------------------------------------------------
+✓ Node.js 18+ (Download: https://nodejs.org/)
+✓ C++ Compiler - MinGW or Visual Studio
+  (Download MinGW: https://sourceforge.net/projects/mingw/)
+
+To check if installed, open Command Prompt and run:
+  node --version
+  npm --version
+  g++ --version
+
+
+COMMON PROBLEMS:
+----------------
+Problem: "g++ is not recognized"
+Solution: Install MinGW or Visual Studio with C++ support
+
+Problem: "npm is not recognized"  
+Solution: Install Node.js from https://nodejs.org/
+
+Problem: Browser doesn't open
+Solution: Manually open http://localhost:3000
+
+Problem: "Port 3000 already in use"
+Solution: The app will use port 3001 automatically
+
+Problem: PowerShell won't run scripts
+Solution: Run PowerShell as Admin and execute:
+  Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+
+STOPPING THE APPLICATION:
+--------------------------
+Press Ctrl+C in the command prompt/terminal
+
+
+FOR MORE HELP:
+--------------
+Open these files in the project folder:
+- START_HERE.html (double-click to open in browser)
+- WINDOWS_SETUP.md
+- README.md
+
+====================================================

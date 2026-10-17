@@ -1,0 +1,29 @@
+
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Smart Factory Scheduler",
+      "type": "shell",
+      "command": "g++",
+      "args": [
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Ibackend/include",
+        "backend/src/main.cpp",
+        "backend/src/scheduler.cpp",
+        "backend/src/bankers.cpp",
+        "-o",
+        "scheduler.exe"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    }
+  ]
+}

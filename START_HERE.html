@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Scheduler - Quick Start</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: white;
+            color: #333;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        code {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .command {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        .note {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            color: #856404;
+        }
+        a {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .button-link {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin: 10px 10px 10px 0;
+            font-weight: bold;
+        }
+        .button-link:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Production Scheduler - Quick Start</h1>
+        <p><strong>Operating Systems Project - CPU Scheduling Algorithms</strong></p>
+
+        <div class="note">
+            <strong>⚡ Quick Start for Windows Users:</strong><br>
+            Just double-click <code>run.bat</code> file in the project folder!
+        </div>
+
+        <div class="step">
+            <h3>Step 1: Check Requirements</h3>
+            <p>Make sure you have installed:</p>
+            <ul>
+                <li><strong>Node.js</strong> - <a href="https://nodejs.org/" target="_blank">Download here</a></li>
+                <li><strong>C++ Compiler</strong> (g++ or MinGW) - <a href="https://sourceforge.net/projects/mingw/" target="_blank">Download MinGW</a></li>
+            </ul>
+            <p>Open Command Prompt and verify:</p>
+            <div class="command">
+node --version<br>
+npm --version<br>
+g++ --version
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Run the Application</h3>
+            <p><strong>Windows (Easiest):</strong></p>
+            <p>Double-click <code>run.bat</code> in the project folder</p>
+            
+            <p><strong>Windows (Command Prompt):</strong></p>
+            <div class="command">
+cd path\to\Smart_Factory_Production_Scheduler_50pct<br>
+run.bat
+            </div>
+
+            <p><strong>Windows (PowerShell):</strong></p>
+            <div class="command">
+cd path\to\Smart_Factory_Production_Scheduler_50pct<br>
+.\run.ps1
+            </div>
+
+            <p><strong>macOS/Linux:</strong></p>
+            <div class="command">
+cd path/to/Smart_Factory_Production_Scheduler_50pct<br>
+./run.sh
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Access the Dashboard</h3>
+            <p>The browser should open automatically. If not, manually open:</p>
+            <a href="http://localhost:3000" target="_blank" class="button-link">Open Dashboard (http://localhost:3000)</a>
+        </div>
+
+        <div class="step">
+            <h3>📚 Features</h3>
+            <ul>
+                <li><strong>3 Scheduling Algorithms:</strong> FCFS, SJF, Priority</li>
+                <li><strong>Add Custom Orders:</strong> Click "Add Order" button</li>
+                <li><strong>Visual Timeline:</strong> See order scheduling in real-time</li>
+                <li><strong>Statistics:</strong> Average wait time, late orders tracking</li>
+            </ul>
+        </div>
+
+        <div class="note">
+            <strong>🛠️ Troubleshooting:</strong><br>
+            If something doesn't work, check <code>WINDOWS_SETUP.md</code> or <code>README.md</code> for detailed instructions!
+        </div>
+
+        <hr>
+        <p style="text-align: center; color: #999; margin-top: 30px;">
+            <small>Production Scheduler v1.0 - CS Operating Systems Project</small>
+        </p>
+    </div>
+</body>
+</html>
