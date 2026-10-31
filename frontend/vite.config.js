@@ -8,6 +8,11 @@ export default defineConfig({
     port: 3000,
     open: true,
     host: true,
-    strictPort: false
+    strictPort: false,
+    // Proxy API calls to the Node/Express backend so the frontend can use
+    // relative URLs like fetch('/api/orders').
+    proxy: {
+      '/api': 'http://localhost:4000'
+    }
   }
 })

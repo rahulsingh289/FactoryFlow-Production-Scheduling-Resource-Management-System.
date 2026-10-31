@@ -1,7 +1,19 @@
 .DS_Store
 *.o
-os-engine/factory_resource_engine
 node_modules/
 dist/
 build/
 *.code-workspace
+
+# compiled C++ engine binaries (rebuilt by setup)
+engine/factory_engine
+engine/factory_engine.exe
+
+# backend environment / secrets
+backend/.env
+
+# planning / report docs — kept locally, not pushed to the repo
+docs/IMPLEMENTATION_STATUS.md
+docs/DESIGN.md
+docs/DBMS_WORK_DIVISION.md
+docs/dbms/

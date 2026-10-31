@@ -1,63 +1,40 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# ===========================================================================
+#  Smart Factory Production Scheduler — one-command launcher (macOS / Linux)
+#  Builds the C++ engine, installs dependencies, then starts the backend API
+#  and the React dashboard together.
+# ===========================================================================
+set -e
+cd "$(dirname "$0")"
+ROOT="$(pwd)"
 
-# Smart Factory Production Scheduler - Unified Run Script
-# This script compiles the C++ backend, installs frontend dependencies, and runs everything
+echo "==> 1/4  Building C++ OS engine..."
+( cd engine && g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine )
+echo "    engine built: engine/factory_engine"
 
-set -e  # Exit on error
+echo "==> 2/4  Installing backend dependencies..."
+[ -d backend/node_modules ] || ( cd backend && npm install --no-audit --no-fund )
+[ -f backend/.env ] || cp backend/.env.example backend/.env
 
-echo "=================================="
-echo "Smart Factory Production Scheduler"
-echo "=================================="
+echo "==> 3/4  Installing frontend dependencies..."
+[ -d frontend/node_modules ] || ( cd frontend && npm install --no-audit --no-fund )
+
+echo "==> 4/4  Starting servers..."
+# Start the backend API (port 4000)
+( cd backend && npm start ) &
+BACKEND_PID=$!
+
+# Stop the backend when this script is interrupted
+trap 'echo; echo "Stopping..."; kill $BACKEND_PID 2>/dev/null; exit 0' INT TERM
+
+sleep 1
+echo ""
+echo "  Backend API : http://localhost:4000/api/health"
+echo "  Dashboard   : http://localhost:3000   (opening now)"
+echo "  Login       : manager / manager123"
 echo ""
 
-# Get the directory where the script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
+# Start the frontend dev server (port 3000) in the foreground
+( cd frontend && npm run dev )
 
-# Step 1: Compile C++ Backend
-echo "[1/4] Compiling C++ backend..."
-g++ -std=c++17 -Ibackend/include \
-    backend/src/main.cpp \
-    backend/src/scheduler.cpp \
-    backend/src/resource_manager.cpp \
-    backend/src/bankers.cpp \
-    -o scheduler
-
-if [ $? -eq 0 ]; then
-    echo "✓ Backend compiled successfully"
-else
-    echo "✗ Backend compilation failed"
-    exit 1
-fi
-echo ""
-
-# Step 2: Install Frontend Dependencies (if needed)
-echo "[2/4] Checking frontend dependencies..."
-cd frontend
-if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/vite" ]; then
-    echo "Installing npm packages..."
-    rm -rf node_modules package-lock.json
-    npm install
-    echo "✓ Frontend dependencies installed"
-else
-    echo "✓ Frontend dependencies already installed"
-fi
-cd ..
-echo ""
-
-# Step 3: Run C++ Scheduler
-echo "[3/4] Running C++ scheduler..."
-echo "-----------------------------------"
-./scheduler
-echo "-----------------------------------"
-echo "✓ Scheduler execution completed"
-echo ""
-
-# Step 4: Start Frontend Development Server
-echo "[4/4] Starting React dashboard..."
-echo "-----------------------------------"
-echo "The dashboard will open in your browser."
-echo "Press Ctrl+C to stop the server."
-echo "-----------------------------------"
-cd frontend
-npm run dev
+kill $BACKEND_PID 2>/dev/null || true
