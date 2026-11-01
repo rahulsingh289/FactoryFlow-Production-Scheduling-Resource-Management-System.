@@ -7,8 +7,8 @@
 --  DBMS concepts: BEFORE/AFTER INSERT/UPDATE/DELETE triggers, SIGNAL, derived
 --                 data maintained by the DB, trigger-based auditing, EVENTs.
 --
---  Run AFTER seed.sql (so resource_pools.available_units starts correct).
---  mysql -u root -p smart_factory < database/triggers.sql
+--  Run AFTER 02_seed.sql (so resource_pools.available_units starts correct).
+--  mysql -u root -p smart_factory < database/05_triggers.sql
 -- ===========================================================================
 USE smart_factory;
 

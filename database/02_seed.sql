@@ -1,6 +1,6 @@
 -- ===========================================================================
 --  Smart Factory Production Scheduler  —  SEED DATA
---  Run after schema.sql.
+--  Run after 01_schema.sql.
 --
 --  NOTE on users: the backend creates the default login accounts on startup
 --  with properly bcrypt-hashed passwords (manager/manager123, operator/operator123),

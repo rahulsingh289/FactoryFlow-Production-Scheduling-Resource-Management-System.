@@ -5,8 +5,8 @@
 --  Focus: Data Control Language — roles, users, GRANT / REVOKE, least privilege.
 --  DBMS concepts: DCL, roles, privilege management.
 --
---  Run as an admin (root) AFTER schema.sql.  Optional for the running app.
---  mysql -u root -p < database/security.sql
+--  Run as an admin (root) AFTER 01_schema.sql.  Optional for the running app.
+--  mysql -u root -p < database/06_security.sql
 -- ===========================================================================
 USE smart_factory;
 

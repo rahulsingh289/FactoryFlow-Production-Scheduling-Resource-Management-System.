@@ -5,7 +5,7 @@
 --  Focus: advanced querying — JOINs, subqueries (correlated / EXISTS),
 --         aggregates, GROUP BY ... HAVING ... WITH ROLLUP, CASE, CTEs,
 --         window functions (RANK, ROW_NUMBER, LAG, running totals), UNION.
---  Run after views.sql (and procedures.sql for the function demos).
+--  Run after 03_views.sql (and 04_procedures.sql for the function demos).
 --  Execute any block individually in MySQL Workbench or the CLI.
 -- ===========================================================================
 USE smart_factory;
@@ -98,7 +98,7 @@ JOIN order_resource_claims c ON c.order_id = o.order_id
 JOIN resource_pools p        ON p.pool_id  = c.pool_id
 ORDER BY o.order_id, p.pool_id;
 
--- Q12. Stored FUNCTIONS in a query (requires procedures.sql).
+-- Q12. Stored FUNCTIONS in a query (requires 04_procedures.sql).
 SELECT fn_orders_by_status('READY')     AS ready_orders,
        fn_orders_by_status('COMPLETED') AS completed_orders,
        fn_pool_available(1)             AS cnc_free,

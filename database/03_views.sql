@@ -7,7 +7,7 @@
 --  DBMS concepts: CREATE VIEW, multi-table JOIN, GROUP BY, window functions.
 --  Companion query pack: database/queries.sql
 --
---  Run after seed.sql.   mysql -u root -p smart_factory < database/views.sql
+--  Run after 02_seed.sql.   mysql -u root -p smart_factory < database/03_views.sql
 -- ===========================================================================
 USE smart_factory;
 

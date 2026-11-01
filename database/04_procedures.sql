@@ -7,9 +7,9 @@
 --  DBMS concepts: routines, parameters (IN/OUT), transactions, isolation,
 --                 SELECT ... FOR UPDATE, handlers, SIGNAL, cursors, loops.
 --
---  Load WITH triggers.sql (resource_pools.available_units is kept in sync by
+--  Load WITH 05_triggers.sql (resource_pools.available_units is kept in sync by
 --  Karan's trigger, so these routines only touch the claim rows).
---  mysql -u root -p smart_factory < database/procedures.sql
+--  mysql -u root -p smart_factory < database/04_procedures.sql
 -- ===========================================================================
 USE smart_factory;
 

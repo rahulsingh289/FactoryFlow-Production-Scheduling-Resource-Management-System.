@@ -38,9 +38,9 @@ async function bootstrapIfNeeded(baseConfig) {
     );
     if (rows[0].n === 0) {
       console.log('[db] smart_factory not found — bootstrapping schema, seed and views...');
-      await runSqlFile(conn, 'schema.sql');
-      await runSqlFile(conn, 'seed.sql');
-      await runSqlFile(conn, 'views.sql');
+      await runSqlFile(conn, '01_schema.sql');
+      await runSqlFile(conn, '02_seed.sql');
+      await runSqlFile(conn, '03_views.sql');
       console.log('[db] bootstrap complete.');
     }
   } finally {

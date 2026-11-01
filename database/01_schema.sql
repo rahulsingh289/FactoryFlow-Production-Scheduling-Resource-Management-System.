@@ -6,11 +6,10 @@
 --         generated columns, and indexing strategy.
 --  DBMS concepts: DDL, PK/FK, ON DELETE/UPDATE actions, CHECK, ENUM, UNIQUE,
 --                 composite & secondary indexes, STORED generated columns.
---  Normalisation write-up: docs/dbms/normalization.md
 --
---  Run order:  schema.sql -> seed.sql -> views.sql -> procedures.sql
---                                     -> triggers.sql -> security.sql (optional)
---  CLI:        mysql -u root -p < database/schema.sql
+--  Run order:  01_schema.sql -> 02_seed.sql -> 03_views.sql -> 04_procedures.sql
+--                                     -> 05_triggers.sql -> 06_security.sql (optional)
+--  CLI:        mysql -u root -p < database/01_schema.sql
 -- ===========================================================================
 
 DROP DATABASE IF EXISTS smart_factory;

@@ -68,72 +68,53 @@ with classic CPU-scheduling algorithms, manages shared resources safely using th
 - **g++** (C++17) — `g++` on Linux/macOS, MinGW-w64 on Windows
 - **MySQL 8+** *(optional — see below)*
 
-### Run everything with one command
+### Run it
 
-**macOS / Linux:**
+Build the engine, then start the two servers in separate terminals:
+
 ```bash
-./run.sh
+# 1. Build the C++ OS engine
+cd engine
+g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine     # factory_engine.exe on Windows
+
+# 2. Backend API  (terminal 1)
+cd ../backend
+npm install
+npm start            # http://localhost:4000
+
+# 3. Frontend dashboard  (terminal 2)
+cd ../frontend
+npm install
+npm run dev          # http://localhost:3000
 ```
-
-**Windows:** double-click `run.bat` (or run it from a terminal).
-
-This builds the C++ engine, installs dependencies, starts the API on
-`http://localhost:4000` and opens the dashboard at `http://localhost:3000`.
 
 **Login:** `manager` / `manager123`  (or `operator` / `operator123`)
 
 ### Demo mode vs. MySQL mode
-The backend tries MySQL first. **If MySQL is not running, it automatically starts
-in demo mode** using in-memory data (seeded identically to `seed.sql`) so the whole
+The backend tries MySQL first. **If MySQL is not running it automatically starts
+in demo mode**, using in-memory data (seeded identically to `02_seed.sql`) so the
 website still works. The dashboard shows which mode is active.
 
 To use **real MySQL**:
 1. Start MySQL and set credentials in `backend/.env` (copy from `.env.example`).
 2. On first launch the backend auto-creates and seeds the `smart_factory`
-   database (it loads `schema.sql`, `seed.sql`, `views.sql`).
-3. To load the full DBMS feature set (procedures, triggers, events, roles —
-   needed for the DBMS viva), run the remaining files once in the MySQL CLI:
+   database (it loads `01_schema.sql`, `02_seed.sql`, `03_views.sql`).
+3. Load the rest of the DBMS feature set once in the MySQL CLI (procedures,
+   triggers, events, roles):
    ```bash
-   mysql -u root -p smart_factory < database/procedures.sql
-   mysql -u root -p smart_factory < database/triggers.sql
-   mysql -u root -p          < database/security.sql   # optional (roles/grants)
+   mysql -u root -p smart_factory < database/04_procedures.sql
+   mysql -u root -p smart_factory < database/05_triggers.sql
+   mysql -u root -p             < database/06_security.sql   # optional (roles/grants)
    ```
-   Or load everything from scratch in order:
+   Or load everything from scratch, in order (`01` → `06`):
    ```bash
-   mysql -u root -p < database/schema.sql
-   mysql -u root -p smart_factory < database/seed.sql
-   mysql -u root -p smart_factory < database/views.sql
-   mysql -u root -p smart_factory < database/procedures.sql
-   mysql -u root -p smart_factory < database/triggers.sql
-   mysql -u root -p smart_factory < database/security.sql
+   mysql -u root -p < database/01_schema.sql
+   for f in 02_seed 03_views 04_procedures 05_triggers 06_security; do
+     mysql -u root -p smart_factory < database/$f.sql
+   done
    ```
-
-### Database work is split across the team
-The SQL is organised into four owned modules (schema/normalisation, procedures/
-transactions, triggers/events, views/analytics). See
-[docs/DBMS_WORK_DIVISION.md](docs/DBMS_WORK_DIVISION.md) and the normalisation
-proof in [docs/dbms/normalization.md](docs/dbms/normalization.md). Ready-to-run
-demonstration queries are in [`database/queries.sql`](database/queries.sql).
-
----
-
-## Manual setup (without the run script)
-
-```bash
-# 1. Build the C++ engine
-cd engine
-g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine     # factory_engine.exe on Windows
-
-# 2. Start the backend API
-cd ../backend
-npm install
-npm start            # http://localhost:4000
-
-# 3. Start the frontend (new terminal)
-cd ../frontend
-npm install
-npm run dev          # http://localhost:3000
-```
+   Ready-to-run demonstration queries are in
+   [`database/queries.sql`](database/queries.sql).
 
 ---
 
@@ -167,5 +148,34 @@ printf "5 3\n3 3 2\n1 0 1 0 7 5 3\n2 2 0 0 3 2 2\n3 3 0 2 9 0 2\n4 2 1 1 2 2 2\n
   | engine/factory_engine bankers
 ```
 
-See `docs/IMPLEMENTATION_STATUS.md` for a component-by-component status and
-`database/queries.sql` for ready-to-run SQL demonstration queries.
+See [`database/queries.sql`](database/queries.sql) for ready-to-run SQL
+demonstration queries and [`docs/diagrams/`](docs/diagrams/) for the HLD, LLD and
+ER diagrams.
+
+---
+
+## Project structure
+
+```
+.
+├── engine/                 C++ OS engine (scheduling, Banker's, deadlock)
+│   ├── include/            headers  (scheduling.h, bankers.h)
+│   └── src/                main.cpp, scheduling.cpp, bankers.cpp
+├── backend/                Node + Express REST API
+│   ├── .env.example
+│   └── src/
+│       ├── server.js
+│       ├── routes/         auth · catalog · os · reports
+│       ├── services/       auth.js (JWT) · engine.js (C++ bridge)
+│       └── db/             index.js · repo.js · memoryStore.js
+├── database/               MySQL — numbered in load order
+│   ├── 01_schema.sql   02_seed.sql    03_views.sql
+│   ├── 04_procedures.sql  05_triggers.sql  06_security.sql
+│   └── queries.sql         demonstration query pack
+├── frontend/               React + Vite dashboard
+│   └── src/
+│       ├── App.jsx  main.jsx  api.js  style.css
+│       ├── components/     ui.jsx · icons.jsx
+│       └── pages/          Dashboard · Orders · Scheduler · Resources · Bankers · Reports
+└── docs/diagrams/          HLD · LLD · ER (SVG + generator)
+```
