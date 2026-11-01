@@ -1,9 +1,19 @@
 // ---------------------------------------------------------------------------
 // JWT helpers and the auth middleware used to protect write endpoints.
 // ---------------------------------------------------------------------------
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
-const SECRET = process.env.JWT_SECRET || 'dev-secret';
+// Never fall back to a fixed, predictable secret — anyone reading the source
+// (this is a public repo) could forge tokens for any user. If JWT_SECRET
+// isn't set, generate a random one at startup instead; existing sessions
+// just get signed out on restart, which is an acceptable trade-off here.
+const PLACEHOLDER = 'change-this-secret-for-production';
+const fromEnv = process.env.JWT_SECRET;
+const SECRET = (fromEnv && fromEnv !== PLACEHOLDER) ? fromEnv : crypto.randomBytes(48).toString('hex');
+if (!fromEnv || fromEnv === PLACEHOLDER) {
+  console.warn('[auth] JWT_SECRET not set in backend/.env — using a random secret for this run (sessions will not survive a restart).');
+}
 
 function signToken(user) {
   return jwt.sign(

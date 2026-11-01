@@ -50,7 +50,7 @@ async function bootstrapIfNeeded(baseConfig) {
 
 async function init() {
   if ((process.env.DB_MODE || '').toLowerCase() === 'memory') {
-    console.log('[db] DB_MODE=memory — using in-memory demo data.');
+    console.log('[db] DB_MODE=memory — using the in-memory fallback store.');
     state.mode = 'memory';
     return state;
   }
@@ -75,7 +75,7 @@ async function init() {
     state.mode = 'mysql';
     console.log(`[db] connected to MySQL at ${baseConfig.host}:${baseConfig.port}/${baseConfig.database}`);
   } catch (err) {
-    console.warn('[db] MySQL not available (' + err.code + ') — falling back to in-memory DEMO mode.');
+    console.warn('[db] MySQL not available (' + err.code + ') — falling back to the in-memory store.');
     console.warn('[db] To use MySQL: start the server and set credentials in backend/.env');
     state.mode = 'memory';
     state.pool = null;

@@ -22,9 +22,10 @@ USE smart_factory;
 CREATE TABLE users (
   user_id       INT AUTO_INCREMENT PRIMARY KEY,
   username      VARCHAR(50)  NOT NULL UNIQUE,
+  email         VARCHAR(120) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   full_name     VARCHAR(120) NOT NULL,
-  role          ENUM('MANAGER','OPERATOR') NOT NULL DEFAULT 'OPERATOR',
+  role          ENUM('MANAGER','OPERATOR') NOT NULL DEFAULT 'MANAGER',
   created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

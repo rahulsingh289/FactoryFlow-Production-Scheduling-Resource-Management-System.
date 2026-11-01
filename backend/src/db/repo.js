@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // Repository: every data operation the API needs, implemented for BOTH the
-// MySQL backend and the in-memory demo store. Routes call these functions and
-// never care which mode is active.
+// MySQL backend and the in-memory fallback store. Routes call these functions
+// and never care which mode is active.
 // ---------------------------------------------------------------------------
 const bcrypt = require('bcryptjs');
 const { state } = require('./index');
@@ -16,35 +16,36 @@ const isMysql = () => state.mode === 'mysql';
 const q = (sql, params) => state.pool.query(sql, params);
 
 // ----------------------------- Auth / users -------------------------------
-async function ensureDefaultUsers() {
-  const defaults = [
-    { username: 'manager',  password: 'manager123',  full_name: 'Factory Manager', role: 'MANAGER' },
-    { username: 'operator', password: 'operator123', full_name: 'Line Operator',   role: 'OPERATOR' },
-  ];
-  for (const u of defaults) {
-    const hash = bcrypt.hashSync(u.password, 10);
-    if (isMysql()) {
-      await q(
-        `INSERT INTO users (username, password_hash, full_name, role)
-         VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)`,
-        [u.username, hash, u.full_name, u.role]
-      );
-    } else {
-      const d = memData();
-      const existing = d.users.find((x) => x.username === u.username);
-      if (existing) existing.password_hash = hash;
-      else d.users.push({ user_id: d.users.length + 1, username: u.username, password_hash: hash, full_name: u.full_name, role: u.role });
-    }
-  }
-}
-
 async function findUserByUsername(username) {
   if (isMysql()) {
     const [rows] = await q('SELECT * FROM users WHERE username = ?', [username]);
     return rows[0] || null;
   }
   return memData().users.find((u) => u.username === username) || null;
+}
+
+async function findUserByEmail(email) {
+  if (isMysql()) {
+    const [rows] = await q('SELECT * FROM users WHERE email = ?', [email]);
+    return rows[0] || null;
+  }
+  return memData().users.find((u) => u.email === email) || null;
+}
+
+// Create a new account. Returns the created user row (without the hash).
+async function createUser({ username, email, full_name, password, role = 'MANAGER' }) {
+  const hash = bcrypt.hashSync(password, 10);
+  if (isMysql()) {
+    const [res] = await q(
+      `INSERT INTO users (username, email, password_hash, full_name, role) VALUES (?,?,?,?,?)`,
+      [username, email, hash, full_name, role]
+    );
+    return { user_id: res.insertId, username, email, full_name, role };
+  }
+  const d = memData();
+  const user = { user_id: ++d.seq.user, username, email, password_hash: hash, full_name, role };
+  d.users.push(user);
+  return { user_id: user.user_id, username, email, full_name, role };
 }
 
 // -------------------------------- Orders -----------------------------------
@@ -135,11 +136,30 @@ async function updateMachineStatus(id, status) {
   const m = memData().machines.find((x) => x.machine_id === id);
   if (m) m.status = status;
 }
+async function addMachine({ machine_name, machine_type, capacity = 1, status = 'AVAILABLE' }) {
+  if (isMysql()) {
+    const [r] = await q('INSERT INTO machines (machine_name, machine_type, capacity, status) VALUES (?,?,?,?)',
+      [machine_name, machine_type, capacity, status]);
+    return { machine_id: r.insertId, machine_name, machine_type, capacity, status };
+  }
+  const d = memData();
+  const m = { machine_id: ++d.seq.machine, machine_name, machine_type, capacity, status };
+  d.machines.push(m); return m;
+}
 
 // -------------------------------- Workers ----------------------------------
 async function listWorkers() {
   if (isMysql()) { const [rows] = await q('SELECT * FROM workers ORDER BY worker_id'); return rows; }
   return [...memData().workers];
+}
+async function addWorker({ full_name, skill, status = 'AVAILABLE' }) {
+  if (isMysql()) {
+    const [r] = await q('INSERT INTO workers (full_name, skill, status) VALUES (?,?,?)', [full_name, skill, status]);
+    return { worker_id: r.insertId, full_name, skill, status };
+  }
+  const d = memData();
+  const w = { worker_id: ++d.seq.worker, full_name, skill, status };
+  d.workers.push(w); return w;
 }
 
 // ------------------------------- Inventory ---------------------------------
@@ -152,11 +172,32 @@ async function updateInventoryQty(id, quantity) {
   const it = memData().inventory.find((x) => x.material_id === id);
   if (it) it.quantity_available = quantity;
 }
+async function addInventoryItem({ material_name, quantity_available = 0, reorder_level = 0, unit = 'units' }) {
+  if (isMysql()) {
+    const [r] = await q('INSERT INTO inventory (material_name, quantity_available, reorder_level, unit) VALUES (?,?,?,?)',
+      [material_name, quantity_available, reorder_level, unit]);
+    return { material_id: r.insertId, material_name, quantity_available, reorder_level, unit };
+  }
+  const d = memData();
+  const it = { material_id: ++d.seq.material, material_name, quantity_available, reorder_level, unit };
+  d.inventory.push(it); return it;
+}
 
 // -------------------------------- Pools ------------------------------------
 async function listPools() {
   if (isMysql()) { const [rows] = await q('SELECT * FROM resource_pools ORDER BY pool_id'); return rows; }
   return [...memData().pools];
+}
+async function addPool({ pool_name, total_units, available_units }) {
+  const avail = available_units == null ? total_units : available_units;
+  if (isMysql()) {
+    const [r] = await q('INSERT INTO resource_pools (pool_name, total_units, available_units) VALUES (?,?,?)',
+      [pool_name, total_units, avail]);
+    return { pool_id: r.insertId, pool_name, total_units, available_units: avail };
+  }
+  const d = memData();
+  const p = { pool_id: ++d.seq.pool, pool_name, total_units, available_units: avail };
+  d.pools.push(p); return p;
 }
 
 // --------------------- Banker's / deadlock matrices ------------------------
@@ -296,12 +337,12 @@ async function dashboardStats() {
 }
 
 module.exports = {
-  ensureDefaultUsers, findUserByUsername,
+  findUserByUsername, findUserByEmail, createUser,
   listOrders, getOrder, addOrder, updateOrderStatus, deleteOrder,
-  listMachines, updateMachineStatus,
-  listWorkers,
-  listInventory, updateInventoryQty,
-  listPools,
+  listMachines, updateMachineStatus, addMachine,
+  listWorkers, addWorker,
+  listInventory, updateInventoryQty, addInventoryItem,
+  listPools, addPool,
   getBankersData, getReadyOrders,
   recordScheduleRun, listScheduleRuns,
   listAudit, dashboardStats,

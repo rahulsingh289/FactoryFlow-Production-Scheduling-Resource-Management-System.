@@ -11,7 +11,8 @@ const ALGORITHMS = ['FCFS', 'SJF', 'SRTF', 'PRIORITY', 'PRIORITYP', 'RR'];
 
 // POST /api/os/schedule  { algorithm, quantum }
 // Runs the chosen policy over all non-completed orders and stores the run.
-router.post('/schedule', async (req, res, next) => {
+// Requires auth: unlike /compare, this writes a row to schedule history.
+router.post('/schedule', requireAuth, async (req, res, next) => {
   try {
     const algorithm = String(req.body?.algorithm || 'FCFS').toUpperCase();
     const quantum = Number(req.body?.quantum || 2);
@@ -86,9 +87,13 @@ router.post('/bankers/request', requireAuth, async (req, res, next) => {
   try {
     const data = await repo.getBankersData();
     const order_id = Number(req.body?.order_id);
-    const units = (req.body?.units || []).map(Number);
-    if (!Number.isFinite(order_id) || units.length !== data.pools.length) {
-      return res.status(400).json({ error: `order_id and units[${data.pools.length}] are required` });
+    const units = (Array.isArray(req.body?.units) ? req.body.units : []).map(Number);
+    const unitsValid = units.length === data.pools.length && units.every((u) => Number.isFinite(u) && u >= 0);
+    if (!Number.isFinite(order_id) || !unitsValid) {
+      return res.status(400).json({ error: `order_id and ${data.pools.length} non-negative unit counts are required` });
+    }
+    if (!data.orders.some((o) => o.order_id === order_id)) {
+      return res.status(404).json({ error: 'order not found' });
     }
     const result = engine.bankers(data, { order_id, units });
     res.json({ ...data, ...result, request: { order_id, units }, sequenceNames: namesFor(data, result.sequence) });

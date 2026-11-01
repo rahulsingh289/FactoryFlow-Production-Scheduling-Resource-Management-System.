@@ -1,7 +1,7 @@
 // =========================================================================
 //  Smart Factory Production Scheduler — REST API server
-//  Node.js + Express. Talks to MySQL (or in-memory demo data) and runs the
-//  C++ OS engine for scheduling / Banker's / deadlock computations.
+//  Node.js + Express. Talks to MySQL (or an in-memory fallback store) and
+//  runs the C++ OS engine for scheduling / Banker's / deadlock computations.
 // =========================================================================
 require('dotenv').config();
 
@@ -9,14 +9,12 @@ const express = require('express');
 const cors = require('cors');
 
 const db = require('./db');
-const repo = require('./db/repo');
 const engine = require('./services/engine');
 
 const PORT = Number(process.env.PORT || 4000);
 
 async function main() {
-  await db.init();                 // connect MySQL or fall back to memory
-  await repo.ensureDefaultUsers(); // seed manager/operator logins
+  await db.init();                 // connect MySQL (empty in-memory fallback)
 
   const app = express();
   app.use(cors());
@@ -37,10 +35,12 @@ async function main() {
   app.use('/api/os', require('./routes/os'));
   app.use('/api/reports', require('./routes/reports'));
 
-  // Central error handler
+  // Central error handler. Full detail always goes to the server console;
+  // the client only ever sees a generic message, so internal detail (SQL
+  // error text, file paths, stack traces) never leaks over the network.
   app.use((err, req, res, next) => {
-    console.error('[api error]', err.message);
-    res.status(500).json({ error: err.message });
+    console.error(`[api error] ${req.method} ${req.originalUrl} —`, err.stack || err.message);
+    res.status(500).json({ error: 'Something went wrong on the server. Please try again.' });
   });
 
   app.listen(PORT, () => {
