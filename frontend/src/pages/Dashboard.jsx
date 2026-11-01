@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Card, Tile, Donut, StatusBadge, Empty, Icon } from '../components/ui';
 
-const STATE_COLORS = { READY: '#4f46e5', RUNNING: '#15a34a', BLOCKED: '#d98400', COMPLETED: '#94a3b8' };
+const STATE_COLORS = { READY: '#3f6ea0', RUNNING: '#4a8a5a', BLOCKED: '#9a6f17', COMPLETED: '#8c8777' };
 const ACTION_ICON = { INSERT: 'plus', STATUS_CHANGE: 'refresh', DELETE: 'trash' };
 
 export default function Dashboard() {
@@ -77,7 +77,7 @@ export default function Dashboard() {
           )}
         </Card>
 
-        <Card title="Recent scheduling runs" desc="Latest executions of the C++ engine">
+        <Card title="Recent scheduling runs" desc="Latest scheduler executions">
           {runs.length === 0 ? <Empty icon="scheduler">No runs yet — open the Scheduler.</Empty> : (
             <div className="table-wrap"><table className="table">
               <thead><tr><th>Algorithm</th><th className="num">Avg wait</th><th className="num">Makespan</th><th className="num">Missed</th></tr></thead>

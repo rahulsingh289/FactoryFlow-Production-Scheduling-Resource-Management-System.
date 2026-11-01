@@ -55,7 +55,7 @@ export default function Scheduler() {
 
   return (
     <div className="stack">
-      <Card title="Scheduling engine" desc="Orders are processes; policies are computed by the compiled C++ engine.">
+      <Card title="Scheduling engine" desc="Each order is treated as a process and scheduled by the chosen policy.">
         <div className="scheduler-controls">
           <div className="seg">
             <button className={mode === 'run' ? 'on' : ''} onClick={() => setMode('run')}>Single run</button>

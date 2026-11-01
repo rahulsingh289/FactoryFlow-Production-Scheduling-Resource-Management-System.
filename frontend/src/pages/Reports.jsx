@@ -27,7 +27,7 @@ export default function Reports() {
 
   return (
     <div className="stack">
-      <Card title="Scheduling run history" desc="Every execution of the C++ engine, stored in MySQL" pad={false}>
+      <Card title="Scheduling run history" desc="Every scheduler run, with its results" pad={false}>
         {runs.length === 0 ? <div style={{ padding: 20 }}><Empty icon="scheduler">No runs recorded yet — run the Scheduler.</Empty></div> : (
           <div className="table-wrap"><table className="table">
             <thead><tr>

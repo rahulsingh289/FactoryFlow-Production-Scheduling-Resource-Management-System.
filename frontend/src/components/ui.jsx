@@ -2,7 +2,7 @@
 import React from 'react';
 import Icon from './icons';
 
-const PALETTE = ['#4f46e5', '#0e9b9a', '#d98400', '#dc2626', '#8b5cf6', '#2563eb', '#db2777', '#059669'];
+const PALETTE = ['#c6490f', '#2b6f6a', '#3f6ea0', '#9a6f17', '#7c5aa6', '#4a8a5a', '#b2524a', '#5f7a3a'];
 export function colorFor(pid) {
   return PALETTE[(Math.abs(pid) - 1) % PALETTE.length] || PALETTE[0];
 }

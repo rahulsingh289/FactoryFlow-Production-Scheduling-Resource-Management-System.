@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { api, getUser, clearSession } from './api';
+import { getUser, clearSession } from './api';
 import Icon from './components/icons';
+import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Orders from './pages/Orders';
@@ -42,13 +43,15 @@ function useTheme() {
 
 export default function App() {
   const [user, setUser] = useState(getUser());
+  const [authView, setAuthView] = useState('home'); // 'home' | 'login'
   const [page, setPage] = useState('dashboard');
-  const [health, setHealth] = useState(null);
   const [theme, toggleTheme] = useTheme();
 
-  useEffect(() => { if (user) api.health().then(setHealth).catch(() => setHealth(null)); }, [user]);
-
-  if (!user) return <Login onLogin={setUser} />;
+  if (!user) {
+    return authView === 'login'
+      ? <Login onLogin={setUser} onBack={() => setAuthView('home')} theme={theme} onToggleTheme={toggleTheme} />
+      : <Home onSignIn={() => setAuthView('login')} theme={theme} onToggleTheme={toggleTheme} />;
+  }
 
   const active = ALL.find((n) => n.id === page) || ALL[0];
   const Current = active.C;
@@ -88,27 +91,11 @@ export default function App() {
         <header className="topbar">
           <div className="topbar-title"><h2>{active.title}</h2><p>{active.desc}</p></div>
           <div className="topbar-right">
-            {health && (
-              <>
-                <span className={`pill ${health.dbMode === 'mysql' ? 'pill-ok' : 'pill-warn'}`}>
-                  <span className="dot" />{health.dbMode === 'mysql' ? 'MySQL' : 'Demo data'}
-                </span>
-                <span className={`pill ${health.engineBuilt ? 'pill-ok' : 'pill-warn'}`}>
-                  <span className="dot" />C++ engine
-                </span>
-              </>
-            )}
             <button className="icon-btn" title="Toggle theme" onClick={toggleTheme} style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text-2)' }}>
               <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
             </button>
           </div>
         </header>
-        {health && health.dbMode !== 'mysql' && (
-          <div className="banner">
-            <Icon name="alert" />
-            <span>Running in <b>demo mode</b> with in-memory data. Start MySQL and configure <code>backend/.env</code> to persist to the database.</span>
-          </div>
-        )}
         <div className="page"><Current /></div>
       </main>
     </div>

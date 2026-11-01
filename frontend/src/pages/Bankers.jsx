@@ -122,7 +122,7 @@ export default function Bankers() {
         </div>
       </Card>
 
-      <Card title="Resource-request simulator" desc="Check whether granting a request keeps the system safe (requires login)">
+      <Card title="Resource-request simulator" desc="Check whether granting a request keeps the system safe">
         <form className="form-grid" onSubmit={simulate} style={{ marginBottom: 14 }}>
           <label>Order
             <select value={reqOrder} onChange={(e) => setReqOrder(e.target.value)}>

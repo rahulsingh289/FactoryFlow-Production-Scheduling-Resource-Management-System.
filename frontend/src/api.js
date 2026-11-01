@@ -43,6 +43,7 @@ export const api = {
 
   // auth
   login: (username, password) => request('POST', '/api/auth/login', { username, password }),
+  register: (payload) => request('POST', '/api/auth/register', payload),
 
   // health
   health: () => request('GET', '/api/health'),
