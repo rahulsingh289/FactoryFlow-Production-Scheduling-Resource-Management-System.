@@ -177,5 +177,15 @@ ER diagrams.
 │       ├── App.jsx  main.jsx  api.js  style.css
 │       ├── components/     ui.jsx · icons.jsx
 │       └── pages/          Dashboard · Orders · Scheduler · Resources · Bankers · Reports
-└── docs/diagrams/          HLD · LLD · ER (SVG + generator)
+├── docs/diagrams/          HLD · LLD · ER (SVG + generator)
+├── api/index.js            Vercel serverless entry point (wraps backend/src/app.js)
+└── vercel.json              Vercel build/deploy config
 ```
+
+---
+
+## Deploying to Vercel
+
+See [VERCEL_DEPLOY.md](VERCEL_DEPLOY.md) for the full guide. Short version:
+push to GitHub, import the repo on vercel.com, add your cloud MySQL
+credentials and a `JWT_SECRET` as Environment Variables, click Deploy.

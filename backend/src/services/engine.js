@@ -15,10 +15,20 @@ function engineAvailable() {
   return fs.existsSync(BIN);
 }
 
+// Serverless platforms (Vercel) can bundle a file without preserving its
+// executable bit. Reassert it before every call; this is a cheap no-op once
+// permissions are already correct, and harmless if the filesystem is
+// read-only (the chmod just fails silently and the spawn below surfaces any
+// real permission error with a clear message).
+function ensureExecutable() {
+  try { fs.chmodSync(BIN, 0o755); } catch { /* read-only fs or already correct — ignore */ }
+}
+
 function callEngine(command, stdin) {
   if (!engineAvailable()) {
     throw new Error('C++ engine binary not found. Build it with: cd engine && g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine');
   }
+  ensureExecutable();
   const res = spawnSync(BIN, [command], { input: stdin, encoding: 'utf8', maxBuffer: 1024 * 1024 });
   if (res.status !== 0) {
     throw new Error('Engine failed: ' + (res.stderr || res.error?.message || 'unknown error'));
