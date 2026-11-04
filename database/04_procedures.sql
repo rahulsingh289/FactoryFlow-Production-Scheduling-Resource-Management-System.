@@ -56,13 +56,15 @@ BEGIN
   RETURN IFNULL(n, 0);
 END$$
 
--- Total outstanding need for a pool across all orders.
+-- Total outstanding need for a pool across all active orders.
 CREATE FUNCTION fn_pool_total_need(p_pool_id INT)
 RETURNS INT DETERMINISTIC READS SQL DATA
 BEGIN
   DECLARE n INT;
-  SELECT IFNULL(SUM(max_units - allocated_units), 0) INTO n
-  FROM order_resource_claims WHERE pool_id = p_pool_id;
+  SELECT IFNULL(SUM(c.max_units - c.allocated_units), 0) INTO n
+  FROM order_resource_claims c
+  JOIN production_orders o ON o.order_id = c.order_id
+  WHERE c.pool_id = p_pool_id AND o.status <> 'COMPLETED';
   RETURN n;
 END$$
 
@@ -89,18 +91,26 @@ BEGIN
     VALUES (p_product, p_quantity, p_arrival, p_exec, p_priority, p_deadline, p_machine);
     SET p_order_id = LAST_INSERT_ID();
     INSERT INTO order_resource_claims (order_id, pool_id, allocated_units, max_units)
-    SELECT p_order_id, pool_id, 0, 1 FROM resource_pools;
+    SELECT p_order_id, pool_id, 0,
+           CASE WHEN auto_managed AND (pool_name = 'Workers' OR pool_name = CONCAT(p_machine, ' slots')) THEN 1 ELSE 0 END
+    FROM resource_pools;
   COMMIT;
 END$$
 
--- Complete an order: release its claims (pools are recomputed by the trigger),
--- mark physical allocations released, set status COMPLETED — all atomically.
+-- Complete an order: free its machine and worker, release its claims (pools are
+-- recomputed by the trigger), set status COMPLETED — all atomically.
 CREATE PROCEDURE sp_complete_order(IN p_order_id INT)
 BEGIN
   DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
   START TRANSACTION;
-    UPDATE order_resource_claims SET allocated_units = 0 WHERE order_id = p_order_id;
-    UPDATE resource_allocations  SET status = 'RELEASED' WHERE order_id = p_order_id;
+    UPDATE machines m JOIN resource_allocations a ON a.machine_id = m.machine_id
+      SET m.status = 'AVAILABLE'
+      WHERE a.order_id = p_order_id AND a.status = 'ALLOCATED' AND m.status = 'BUSY';
+    UPDATE workers w JOIN resource_allocations a ON a.worker_id = w.worker_id
+      SET w.status = 'AVAILABLE'
+      WHERE a.order_id = p_order_id AND a.status = 'ALLOCATED' AND w.status = 'ASSIGNED';
+    UPDATE resource_allocations  SET status = 'RELEASED' WHERE order_id = p_order_id AND status = 'ALLOCATED';
+    UPDATE order_resource_claims SET allocated_units = 0, requested_units = 0 WHERE order_id = p_order_id;
     UPDATE production_orders      SET status = 'COMPLETED' WHERE order_id = p_order_id;
   COMMIT;
 END$$

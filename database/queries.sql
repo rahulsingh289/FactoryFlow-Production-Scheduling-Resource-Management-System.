@@ -5,7 +5,7 @@
 --  Focus: advanced querying — JOINs, subqueries (correlated / EXISTS),
 --         aggregates, GROUP BY ... HAVING ... WITH ROLLUP, CASE, CTEs,
 --         window functions (RANK, ROW_NUMBER, LAG, running totals), UNION.
---  Run after 03_views.sql (and 04_procedures.sql for the function demos).
+--  Run after 03_views.sql (and 04_procedures.sql for the functions).
 --  Execute any block individually in MySQL Workbench or the CLI.
 -- ===========================================================================
 USE smart_factory;
@@ -126,7 +126,7 @@ FROM inventory_transactions t
 JOIN inventory i ON i.material_id = t.material_id
 ORDER BY t.created_at DESC, t.txn_id DESC;
 
--- Q17. Transaction demo — add an order via the stored procedure (uncomment).
+-- Q17. Transaction — add an order via the stored procedure (uncomment).
 -- SET @id = 0;
 -- CALL sp_add_order('Garden Bench', 10, 12, 5, 2, 35, 'Welding', @id);
 -- SELECT @id AS new_order_id;

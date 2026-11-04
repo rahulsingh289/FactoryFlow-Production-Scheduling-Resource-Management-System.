@@ -10,10 +10,12 @@
 --  Run order:  01_schema.sql -> 02_seed.sql -> 03_views.sql -> 04_procedures.sql
 --                                     -> 05_triggers.sql -> 06_security.sql (optional)
 --  CLI:        mysql -u root -p < database/01_schema.sql
+--
+--  This file never drops anything, so it fails rather than overwrite existing
+--  tables. To start over, run DROP DATABASE smart_factory; yourself first.
 -- ===========================================================================
 
-DROP DATABASE IF EXISTS smart_factory;
-CREATE DATABASE smart_factory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS smart_factory CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE smart_factory;
 
 -- ---------------------------------------------------------------------------
@@ -49,6 +51,7 @@ CREATE TABLE workers (
   worker_id INT AUTO_INCREMENT PRIMARY KEY,
   full_name VARCHAR(120) NOT NULL,
   skill     VARCHAR(100) NOT NULL,
+  machine_type VARCHAR(60) NULL,   -- the machine type this worker is trained on; NULL = any machine
   status    ENUM('AVAILABLE','ASSIGNED','OFF_SHIFT') NOT NULL DEFAULT 'AVAILABLE',
   INDEX idx_worker_status (status)
 ) ENGINE=InnoDB;
@@ -84,6 +87,7 @@ CREATE TABLE production_orders (
   deadline              INT NOT NULL,
   required_machine_type VARCHAR(60),
   status                ENUM('READY','RUNNING','BLOCKED','COMPLETED') NOT NULL DEFAULT 'READY',
+  materials_taken       BOOLEAN NOT NULL DEFAULT FALSE,  -- stock is deducted once, when the order first starts
   created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT chk_ord_qty      CHECK (quantity > 0),
   CONSTRAINT chk_ord_arrival  CHECK (arrival_time >= 0),
@@ -101,6 +105,7 @@ CREATE TABLE resource_pools (
   pool_name       VARCHAR(100) NOT NULL UNIQUE,
   total_units     INT NOT NULL,
   available_units INT NOT NULL,
+  auto_managed    BOOLEAN NOT NULL DEFAULT FALSE,  -- kept in step with machines / workers
   CONSTRAINT chk_pool_total CHECK (total_units >= 0),
   CONSTRAINT chk_pool_avail CHECK (available_units >= 0 AND available_units <= total_units)
 ) ENGINE=InnoDB;
@@ -114,12 +119,17 @@ CREATE TABLE order_resource_claims (
   pool_id         INT NOT NULL,
   allocated_units INT NOT NULL DEFAULT 0,
   max_units       INT NOT NULL,
+  requested_units INT NOT NULL DEFAULT 0,  -- Request matrix for deadlock detection
   PRIMARY KEY (order_id, pool_id),
   CONSTRAINT chk_claim_alloc CHECK (allocated_units >= 0),
   CONSTRAINT chk_claim_max   CHECK (max_units >= 0),
   CONSTRAINT chk_claim_le    CHECK (allocated_units <= max_units),
   CONSTRAINT fk_claim_order FOREIGN KEY (order_id) REFERENCES production_orders(order_id) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT fk_claim_pool  FOREIGN KEY (pool_id)  REFERENCES resource_pools(pool_id)     ON DELETE CASCADE ON UPDATE CASCADE
+  CONSTRAINT fk_claim_pool  FOREIGN KEY (pool_id)  REFERENCES resource_pools(pool_id)     ON DELETE CASCADE ON UPDATE CASCADE,
+  -- Finished orders keep their rows (all zeros) for ever. Pool totals only add up
+  -- the units actually held, so this lets them skip all of those.
+  -- (Keep in step with backend/src/db/index.js.)
+  INDEX idx_claim_held (allocated_units, pool_id)
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------------
@@ -135,7 +145,13 @@ CREATE TABLE resource_allocations (
   CONSTRAINT fk_alloc_order   FOREIGN KEY (order_id)   REFERENCES production_orders(order_id) ON DELETE CASCADE,
   CONSTRAINT fk_alloc_machine FOREIGN KEY (machine_id) REFERENCES machines(machine_id)        ON DELETE SET NULL,
   CONSTRAINT fk_alloc_worker  FOREIGN KEY (worker_id)  REFERENCES workers(worker_id)          ON DELETE SET NULL,
-  INDEX idx_alloc_order_status (order_id, status)
+  INDEX idx_alloc_order_status (order_id, status),
+  -- Released rows are kept as history and pile up, while almost every lookup is
+  -- for the few that are still ALLOCATED. These keep those lookups small.
+  -- (Keep in step with ensureIndexes in backend/src/db/index.js.)
+  INDEX idx_alloc_machine_status (machine_id, status),
+  INDEX idx_alloc_worker_status (worker_id, status),
+  INDEX idx_alloc_status_machine (status, machine_id)
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------------
@@ -213,4 +229,20 @@ CREATE TABLE audit_log (
   INDEX idx_audit_time (created_at)
 ) ENGINE=InnoDB;
 
-SELECT 'Schema created successfully (13 tables).' AS status;
+-- ---------------------------------------------------------------------------
+-- 14. Order Materials  (what an order uses; deducted from inventory when it starts)
+--     Composite primary key (order_id, material_id) = a junction table.
+--     Keep this in step with the copy in backend/src/db/index.js, which adds it
+--     to databases created before it existed.
+-- ---------------------------------------------------------------------------
+CREATE TABLE order_materials (
+  order_id    INT NOT NULL,
+  material_id INT NOT NULL,
+  quantity    INT NOT NULL,
+  PRIMARY KEY (order_id, material_id),
+  CONSTRAINT chk_om_qty CHECK (quantity > 0),
+  CONSTRAINT fk_om_order    FOREIGN KEY (order_id)    REFERENCES production_orders(order_id) ON DELETE CASCADE,
+  CONSTRAINT fk_om_material FOREIGN KEY (material_id) REFERENCES inventory(material_id)      ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+SELECT 'Schema created successfully (14 tables).' AS status;

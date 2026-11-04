@@ -4,12 +4,24 @@
 const TOKEN_KEY = 'sf_token';
 const USER_KEY = 'sf_user';
 
+// The scheduling policies the API accepts.
+export const ALGORITHMS = [
+  { id: 'FCFS', name: 'First Come First Served' },
+  { id: 'SJF', name: 'Shortest Job First' },
+  { id: 'SRTF', name: 'Shortest Remaining Time (preemptive)' },
+  { id: 'PRIORITY', name: 'Priority (non-preemptive)' },
+  { id: 'PRIORITYP', name: 'Priority (preemptive)' },
+  { id: 'RR', name: 'Round Robin' },
+];
+
 export function getToken() {
   try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
 }
 export function getUser() {
   try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch { return null; }
 }
+// Managers can change the factory; view-only accounts (OPERATOR) can look and run orders.
+export const isManager = () => getUser()?.role === 'MANAGER';
 export function setSession(token, user) {
   try {
     localStorage.setItem(TOKEN_KEY, token);
@@ -30,8 +42,16 @@ async function request(method, path, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`);
+  // A gateway or crash can answer with a plain error page instead of JSON.
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { /* not JSON */ }
+  // An expired session can't save anything, so send the user back to sign in.
+  // A 401 from the auth routes just means a wrong password, so that's left alone.
+  if (res.status === 401 && !path.startsWith('/api/auth/')) {
+    clearSession();
+    window.location.reload();
+  }
+  if (!res.ok) throw new Error((data && data.error) || `Something went wrong (error ${res.status}). Please try again.`);
   return data;
 }
 
@@ -44,7 +64,5 @@ export const api = {
   // auth
   login: (username, password) => request('POST', '/api/auth/login', { username, password }),
   register: (payload) => request('POST', '/api/auth/register', payload),
-
-  // health
-  health: () => request('GET', '/api/health'),
+  authOptions: () => request('GET', '/api/auth/options'),
 };

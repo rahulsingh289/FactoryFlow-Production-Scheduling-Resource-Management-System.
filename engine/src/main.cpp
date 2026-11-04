@@ -14,11 +14,15 @@
 //    deadlock   deadlock detection
 //
 //  Build:  g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine
-//  Try it: echo "FCFS 0
-//  3
-//  1 0 5 2
-//  2 1 3 1
-//  3 2 8 3" | ./factory_engine schedule
+//
+//  schedule request format (machine types are integer ids; -1 = any machine):
+//    ALGORITHM QUANTUM
+//    N   then N lines:  pid arrival burst priority machineType
+//    M   then M lines:  machineId capacity machineType
+//    W   then W lines:  workerId workerType   (workerType -1 = can run any machine)
+//
+//  Try it (2 machines of type 0, 1 worker who can run any machine):
+//    printf "FCFS 0\n2\n1 0 5 2 0\n2 1 3 1 0\n2\n1 1 0\n2 1 0\n1\n7 -1\n" | ./factory_engine schedule
 // =========================================================================
 
 #include "scheduling.h"
@@ -60,11 +64,21 @@ static int cmdSchedule(std::istream& in) {
     procs.reserve(n);
     for (int i = 0; i < n; i++) {
         Process p;
-        in >> p.pid >> p.arrival >> p.burst >> p.priority;
+        in >> p.pid >> p.arrival >> p.burst >> p.priority >> p.machineType;
         procs.push_back(p);
     }
 
-    ScheduleResult r = runSchedule(procs, algo, quantum);
+    int m = 0;
+    in >> m;
+    std::vector<Machine> machines(m);
+    for (auto& machine : machines) in >> machine.id >> machine.capacity >> machine.type;
+
+    int w = 0;
+    in >> w;
+    std::vector<Worker> workers(w);
+    for (auto& worker : workers) in >> worker.id >> worker.type;
+
+    ScheduleResult r = runSchedule(procs, machines, workers, algo, quantum);
 
     std::ostringstream os;
     os << "{";
@@ -75,7 +89,17 @@ static int cmdSchedule(std::istream& in) {
         if (i) os << ",";
         os << "{" << jstr("pid") << ":" << r.gantt[i].pid << ","
            << jstr("start") << ":" << r.gantt[i].start << ","
-           << jstr("end") << ":" << r.gantt[i].end << "}";
+           << jstr("end") << ":" << r.gantt[i].end << ","
+           << jstr("machine") << ":" << r.gantt[i].machine << ","
+           << jstr("worker") << ":" << r.gantt[i].worker << "}";
+    }
+    os << "],";
+
+    os << jstr("unschedulable") << ":[";
+    for (size_t i = 0; i < r.unschedulable.size(); i++) {
+        if (i) os << ",";
+        os << "{" << jstr("pid") << ":" << r.unschedulable[i].pid << ","
+           << jstr("reason") << ":" << jstr(r.unschedulable[i].reason) << "}";
     }
     os << "],";
 

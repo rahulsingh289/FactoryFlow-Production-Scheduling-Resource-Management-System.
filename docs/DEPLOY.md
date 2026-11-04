@@ -16,6 +16,7 @@ backend/src/app.js     → the Express app itself (routes, middleware) — share
                           (local `npm start`)
 engine/factory_engine  → compiled during the Vercel build step, bundled into
                           the function via vercel.json's `includeFiles`
+database/*.sql         → also bundled, so the function can set up the database
 ```
 
 Local development (`npm start` in `backend/`, `npm run dev` in `frontend/`)
@@ -24,12 +25,14 @@ is **unchanged** — none of this affects how you already run it day to day.
 ## Before you deploy: you need a MySQL database Vercel can reach
 
 Your Mac's MySQL only listens on `localhost` — Vercel's servers cannot reach
-it. You need a MySQL database reachable over the internet. Any of these work
-(all have a free tier):
+it. You need a MySQL database reachable over the internet. Check current
+pricing before choosing, since free plans change:
 
-- **[PlanetScale](https://planetscale.com)** — MySQL-compatible, popular with Vercel
+- **[Aiven](https://aiven.io)** — managed MySQL
 - **[Railway](https://railway.app)** — one-click MySQL
-- **[Aiven](https://aiven.io)** — managed MySQL free tier
+- **[PlanetScale](https://planetscale.com)** — MySQL-compatible, so check its
+  compatibility page first: this project uses triggers, stored routines and
+  foreign keys
 
 Create a database, then note its host, port, username, password and database
 name — you'll paste these into Vercel's dashboard in step 3 below.
@@ -61,12 +64,12 @@ In the project's **Settings → Environment Variables**, add:
 | `DB_USER` | your cloud MySQL username |
 | `DB_PASSWORD` | your cloud MySQL password |
 | `DB_NAME` | `smart_factory` |
+| `MANAGER_CODE` | optional. When set, new accounts are view-only unless they sign up with this code. Without it **anyone who opens the site can create a manager account and change everything**, so set it for a public deployment. |
 | `JWT_SECRET` | a long random string — **do not reuse this placeholder.** Generate your own with: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
 
-`JWT_SECRET` matters more here than locally: without it, the backend
-generates a random one per cold start, which would silently sign everyone
-out every time Vercel spins up a fresh instance (every few minutes of
-inactivity). Set a real value.
+`JWT_SECRET` is required here. Every Vercel instance would otherwise generate its
+own random secret and sign people out at random, so the backend refuses to start
+on Vercel without it (the logs say `JWT_SECRET is not set`).
 
 ### 4. Deploy
 Click **Deploy**. Vercel runs `npm run build` (compiles the C++ engine, then
@@ -77,27 +80,32 @@ Open `https://<your-project>.vercel.app/api/health` — it should show
 `"dbMode": "mysql"`. If it shows `"memory"`, your database env vars aren't
 being picked up — re-check step 3 and redeploy.
 
-On first successful connection, the backend auto-creates the `smart_factory`
-schema (same as local dev) — no manual SQL needed for the app to work. For
-the full DBMS feature set (stored procedures, triggers, roles), run those
-files once against your cloud database with the `mysql` CLI, same as the
-local instructions in the main README.
+On first successful connection, the backend creates the tables, views, routines
+and triggers by itself, the same as locally, so the first request takes a little
+longer. Then add an order and start it: the Inventory page's stock ledger should show an entry after you change a quantity.
+
+Some hosted databases refuse triggers or routines for ordinary users. The app
+still runs if they do, but the stock ledger stays empty, and the
+function log shows `could not create routines or triggers`. On MySQL, the usual
+fix is turning on `log_bin_trust_function_creators` in your provider's settings
+and then redeploying.
 
 ## The one thing to watch for in your first deploy
 
-The compiled C++ binary (`engine/factory_engine`) is bundled into the
-serverless function via `includeFiles` in `vercel.json`. This is the
-standard, documented way to ship a non-JS binary alongside a Vercel
-function — but it's the one part of this setup I couldn't fully verify
-without an actual Vercel deployment (I tested everything else — the build
-command, and the serverless handler itself — locally).
+The compiled C++ binary (`engine/factory_engine`) and the `database/*.sql` files
+are bundled into the serverless function via `includeFiles` in `vercel.json`.
+This hasn't been tested on a real Vercel deployment yet.
 
 If `/api/health` shows `"engineBuilt": false`, or scheduling/Banker's
 requests fail with "C++ engine binary not found", the binary didn't make it
 into the function bundle. Check the function's build logs for the engine
 compile step, and confirm `engine/factory_engine` exists in the deployment.
 If it's still missing, the fix is adjusting the `includeFiles` glob in
-`vercel.json` (try `"engine/**"` instead of the exact filename).
+`vercel.json` (try `"{engine/**,database/**}"`).
+
+If `/api/health` shows `"dbMode": "memory"` even though the variables are right,
+look in the function log for the reason. An error about a missing `.sql` file
+means the same glob needs adjusting.
 
 ## Local testing with the Vercel CLI (optional)
 

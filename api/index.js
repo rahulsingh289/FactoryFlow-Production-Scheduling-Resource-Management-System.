@@ -9,7 +9,7 @@
 //  Note: no dotenv here — Vercel injects the Environment Variables you set
 //  in its dashboard directly into process.env in production. For local
 //  testing with `vercel dev`, the CLI auto-loads a root-level .env the same
-//  way (see VERCEL_DEPLOY.md). dotenv is only used by backend/src/server.js
+//  way (see docs/DEPLOY.md). dotenv is only used by backend/src/server.js
 //  for the plain `npm start` local-dev path.
 // =========================================================================
 const { createApp } = require('../backend/src/app');

@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api, setSession } from '../api';
 import Icon from '../components/icons';
 
-const EMPTY = { full_name: '', username: '', email: '', password: '' };
+const EMPTY = { full_name: '', username: '', email: '', password: '', manager_code: '' };
 
-export default function Login({ onLogin, onBack, theme, onToggleTheme }) {
+export default function Login({ onLogin, onBack }) {
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
+  const [askCode, setAskCode] = useState(false);   // does this factory give out manager codes?
+
+  useEffect(() => { api.authOptions().then((o) => setAskCode(Boolean(o?.managerCode))).catch(() => {}); }, []);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   function switchMode(m) { setMode(m); setError(''); }
@@ -29,16 +33,14 @@ export default function Login({ onLogin, onBack, theme, onToggleTheme }) {
   return (
     <div className="auth-page">
       <div className="auth-top">
-        {onBack && <button className="link-btn" onClick={onBack}><Icon name="logout" size={15} style={{ transform: 'scaleX(-1)' }} />Home</button>}
-        <button className="icon-btn" title="Toggle theme" onClick={onToggleTheme}>
-          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
-        </button>
+        {onBack && <button className="link-btn" onClick={onBack}>&lt; Back</button>}
       </div>
 
       <form className="auth-card" onSubmit={submit}>
-        <div className="auth-brand">
+        <div className="auth-head">
           <span className="brand-mark"><Icon name="factory" size={22} /></span>
-          <div><div className="brand-name">Smart Factory</div><div className="brand-sub">Production Scheduler</div></div>
+          <h2>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h2>
+          <p>{mode === 'login' ? 'Sign in to Smart Factory Production Scheduler' : 'Set up an account to start scheduling'}</p>
         </div>
 
         <div className="seg auth-seg">
@@ -60,12 +62,21 @@ export default function Login({ onLogin, onBack, theme, onToggleTheme }) {
           </label>
         )}
         <label>Password
-          <input type="password" value={form.password} onChange={set('password')}
+          <span className="auth-pass">
+          <input type={show ? 'text' : 'password'} value={form.password} onChange={set('password')}
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            placeholder={mode === 'signup' ? 'At least 6 characters' : ''} required />
+            placeholder={mode === 'signup' ? 'At least 6 characters' : 'Your password'} required />
+          <button type="button" className="auth-show" onClick={() => setShow((v) => !v)}>{show ? 'Hide' : 'Show'}</button>
+          </span>
         </label>
 
-        {error && <div className="form-error"><Icon name="alert" size={16} />{error}</div>}
+        {mode === 'signup' && askCode && (
+          <label>Manager code <span className="muted small">(optional)</span>
+            <input value={form.manager_code} onChange={set('manager_code')} autoComplete="off" placeholder="Leave empty for a view-only account" />
+          </label>
+        )}
+
+        {error && <div className="form-error">{error}</div>}
 
         <button className="btn btn-primary auth-submit" disabled={busy}>
           {busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}

@@ -2,7 +2,11 @@
 import React from 'react';
 import Icon from './icons';
 
-const PALETTE = ['#c6490f', '#2b6f6a', '#3f6ea0', '#9a6f17', '#7c5aa6', '#4a8a5a', '#b2524a', '#5f7a3a'];
+const PALETTE = ['#2563eb', '#16a34a', '#dc2626', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#65a30d'];
+// Short ids shown on screen: P1 for an order, R1 for a scheduling run.
+export const orderTag = (id) => `P${id}`;
+export const runTag = (id) => `R${id}`;
+
 export function colorFor(pid) {
   return PALETTE[(Math.abs(pid) - 1) % PALETTE.length] || PALETTE[0];
 }
@@ -14,9 +18,9 @@ export function StatusBadge({ status }) {
 export function Tile({ icon, tone = 'indigo', value, label, sub }) {
   return (
     <div className="tile">
-      <div className={`tile-ic ${tone}`}><Icon name={icon} /></div>
+      <div className={`tile-ic ${tone}`}><Icon name={icon} size={20} /></div>
       <div>
-        <div className="tile-value num">{value}</div>
+        <div className="tile-value">{value}</div>
         <div className="tile-label">{label}</div>
         {sub != null && <div className="tile-sub">{sub}</div>}
       </div>
@@ -59,7 +63,7 @@ export function Gantt({ slices, processes }) {
         const mine = slices.filter((s) => s.pid === p.pid);
         return (
           <div className="gantt-row" key={p.pid}>
-            <div className="gantt-label" title={p.product_name}>#{p.pid} {p.product_name}</div>
+            <div className="gantt-label" title={p.product_name}>{orderTag(p.pid)} {p.product_name}</div>
             <div className="gantt-lane">
               {mine.map((s, i) => {
                 const left = (s.start / makespan) * 100;
@@ -67,7 +71,7 @@ export function Gantt({ slices, processes }) {
                 return (
                   <div key={i} className="gantt-bar"
                     style={{ left: `${left}%`, width: `${width}%`, background: colorFor(p.pid) }}
-                    title={`${p.product_name}: ${s.start}–${s.end}`}>
+                    title={`${p.product_name}: ${s.start}–${s.end} · ${s.machine_name} · ${s.worker_name}`}>
                     {width > 6 ? `${s.start}-${s.end}` : ''}
                   </div>
                 );
@@ -111,7 +115,7 @@ export function Donut({ segments, centerLabel }) {
   );
 }
 
-export function Gauge({ label, value, total, color = 'var(--cyan)' }) {
+export function Gauge({ label, value, total, color = 'var(--accent)' }) {
   const pct = total ? Math.min(100, (value / total) * 100) : 0;
   return (
     <div className="gauge">

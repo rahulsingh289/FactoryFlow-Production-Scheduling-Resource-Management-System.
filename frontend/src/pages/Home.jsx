@@ -2,92 +2,87 @@ import React from 'react';
 import Icon from '../components/icons';
 
 const FEATURES = [
-  ['scheduler', 'Production scheduling', 'Six classic policies — FCFS, SJF, SRTF, Priority and Round Robin — decide the order jobs run on the floor.'],
-  ['safety', 'Safe allocation', "The Banker's Algorithm and deadlock detection keep shared resources allocated without conflict."],
-  ['resources', 'Resource management', 'Track machines, workers, raw-material inventory and resource pools from a single console.'],
-  ['reports', 'Insight & reports', 'Compare scheduling algorithms side by side, store every run, and review an automatic activity log.'],
+  ['scheduler', 'Production scheduling', 'FCFS, SJF, SRTF, Priority and Round Robin, written in C++, with a Gantt chart and waiting, turnaround and response times.'],
+  ['cpu', 'Machines and workers', 'Each running order holds one machine slot and one worker, so only as many orders run as the factory has free.'],
+  ['safety', "Banker's Algorithm", 'Requests for machines and workers are checked for a safe state. Deadlocks are detected and can be recovered from.'],
+  ['warehouse', 'Inventory', 'Raw materials and a ledger of every change to the stock.'],
+  ['reports', 'Reports', 'Scheduling history, algorithm comparison, machine use and worker workload from SQL views.'],
 ];
 
-export default function Home({ onSignIn, theme, onToggleTheme }) {
+const STEPS = [
+  ['Add the factory', 'Add your machines and workers, and the raw materials you keep in stock.'],
+  ['Create orders', 'Each order has an arrival time, run time, priority, deadline and the machine type it needs.'],
+  ['Schedule and run', 'Pick an algorithm, see the Gantt chart, then start the orders. The Banker\'s check keeps resources safe.'],
+];
+
+export default function Home({ onSignIn }) {
   return (
     <div className="home">
       <header className="home-nav">
-        <div className="home-nav-inner">
-          <div className="brand">
-            <span className="brand-mark"><Icon name="factory" size={20} /></span>
-            <div><div className="brand-name">Smart Factory</div><div className="brand-sub">Production Scheduler</div></div>
-          </div>
-          <div className="home-nav-actions">
-            <button className="icon-btn" title="Toggle theme" onClick={onToggleTheme}>
-              <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
-            </button>
-            <button className="btn btn-primary" onClick={onSignIn}>Sign in<Icon name="logout" size={15} /></button>
-          </div>
+        <div className="brand">
+          <span className="brand-mark"><Icon name="factory" size={20} /></span>
+          <div className="brand-name">Smart Factory</div>
         </div>
+        <nav className="home-links">
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+        </nav>
+        <button className="btn" onClick={onSignIn}>Sign in</button>
       </header>
 
-      {/* Hero */}
-      <section className="hero">
-        <div className="hero-text">
-          <span className="eyebrow">Production operations console</span>
-          <h1>Schedule production like an operating system.</h1>
-          <p>Every production order becomes a process — scheduled by classic algorithms,
-          allocated resources safely, and kept consistent across the whole factory floor.</p>
-          <div className="hero-cta">
-            <button className="btn btn-primary btn-lg" onClick={onSignIn}>Open the console<Icon name="logout" size={16} /></button>
-            <a className="btn btn-lg" href="#features">Explore features</a>
-          </div>
-        </div>
-
-        {/* Console preview */}
-        <div className="hero-visual" aria-hidden="true">
-          <div className="console">
-            <div className="console-bar"><i /><i /><i /><span>scheduler — run</span></div>
-            <div className="console-body">
-              <div className="console-line"><span className="c-prompt">▸</span> run scheduler · shortest job first</div>
-              <div className="console-gantt">
-                {[['#2', 18, 0], ['#4', 10, 18], ['#1', 20, 28], ['#3', 24, 48], ['#6', 28, 72]].map(([id, w, l], i) => (
-                  <div key={i} className="cg-bar" style={{ width: `${w}%`, left: `${l}%`, background: PAL[i] }}>{id}</div>
-                ))}
-              </div>
-              <div className="console-kpis">
-                <div><span>avg wait</span><b className="num">6.83</b></div>
-                <div><span>makespan</span><b className="num">33</b></div>
-                <div><span>missed</span><b className="num">1</b></div>
-                <div className="c-safe"><span>state</span><b>SAFE</b></div>
-              </div>
+      <section className="home-hero">
+        <div className="home-hero-inner">
+          <div className="home-hero-text">
+            <h1>Schedule factory production like an operating system</h1>
+            <p>
+              Every production order is a process. The factory's machines and workers are the
+              limited resources they share. Schedule orders, allocate resources safely and keep
+              everything in MySQL.
+            </p>
+            <div className="home-cta">
+              <button className="btn btn-primary btn-lg" onClick={onSignIn}>Get started</button>
+              <a className="btn btn-lg home-btn-light" href="#how">See how it works</a>
             </div>
+          </div>
+          <div className="home-hero-card">
+            <div className="home-hero-row"><span className="home-hero-ic t0"><Icon name="scheduler" size={18} /></span><div><b>6 algorithms</b><span>FCFS, SJF, SRTF, Priority (2 kinds), Round Robin</span></div></div>
+            <div className="home-hero-row"><span className="home-hero-ic t1"><Icon name="safety" size={18} /></span><div><b>Banker's Algorithm</b><span>Safe-state check and deadlock detection</span></div></div>
+            <div className="home-hero-row"><span className="home-hero-ic t2"><Icon name="resources" size={18} /></span><div><b>MySQL</b><span>Views, procedures, triggers and transactions</span></div></div>
+            <div className="home-hero-row"><span className="home-hero-ic t3"><Icon name="cpu" size={18} /></span><div><b>C++ engine</b><span>All the OS algorithms run in C++</span></div></div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="home-section">
-        <div className="section-head">
-          <span className="eyebrow">What it does</span>
-          <h2>A factory floor, run by scheduling theory.</h2>
-        </div>
-        <div className="feature-grid feature-grid-4">
-          {FEATURES.map(([ic, title, desc]) => (
-            <div className="feature" key={title}>
-              <div className="feature-ic"><Icon name={ic} size={20} /></div>
+      <section id="how" className="home-section">
+        <h2>How it works</h2>
+        <div className="home-steps">
+          {STEPS.map(([title, text], i) => (
+            <div className="home-step" key={title}>
+              <span className="home-step-n">{i + 1}</span>
               <h3>{title}</h3>
-              <p>{desc}</p>
+              <p>{text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="features" className="home-section home-section-alt">
+        <h2>What's inside</h2>
+        <div className="home-features">
+          {FEATURES.map(([icon, title, text], i) => (
+            <div className="home-feature" key={title}>
+              <span className={`home-feature-ic t${i % 6}`}><Icon name={icon} size={20} /></span>
+              <h3>{title}</h3>
+              <p>{text}</p>
             </div>
           ))}
         </div>
       </section>
 
       <footer className="home-footer">
-        <div className="brand">
-          <span className="brand-mark"><Icon name="factory" size={18} /></span>
-          <div><div className="brand-name">Smart Factory</div><div className="brand-sub">Production Scheduler</div></div>
-        </div>
-        <p>A web console for production scheduling and resource management.</p>
+        <span>Smart Factory Production Scheduler</span>
         <button className="btn btn-primary" onClick={onSignIn}>Sign in</button>
       </footer>
     </div>
   );
 }
-
-const PAL = ['#2b6f6a', '#9a6f17', '#c6490f', '#3f6ea0', '#4a8a5a'];

@@ -238,7 +238,7 @@ def lld():
 def er():
     W, H = 1280, 940
     s = [svg_open(W, H, "Database Schema (ER Diagram)")]
-    s.append(titleblock(W, "Database Schema  (ER Diagram)", "MySQL 8 — database smart_factory · 13 tables · PK = key, FK = reference"))
+    s.append(titleblock(W, "Database Schema  (ER Diagram)", "MySQL 8 — database smart_factory · 14 tables · PK = key, FK = reference"))
 
     # table definition: name -> (x, y, color-key, [(col, tag)])
     T = {
@@ -246,8 +246,9 @@ def er():
             ("machine_id", "PK"), ("machine_name", ""), ("machine_type", ""),
             ("capacity", ""), ("status", "")]),
         "workers": (40, 300, "neutral", [
-            ("worker_id", "PK"), ("full_name", ""), ("skill", ""), ("status", "")]),
-        "inventory": (40, 440, "neutral", [
+            ("worker_id", "PK"), ("full_name", ""), ("skill", ""),
+            ("machine_type", ""), ("status", "")]),
+        "inventory": (40, 470, "neutral", [
             ("material_id", "PK"), ("material_name", ""), ("quantity_available", ""),
             ("reorder_level", ""), ("unit", ""), ("below_reorder", "GEN")]),
         "inventory_transactions": (370, 610, "neutral", [
@@ -257,17 +258,21 @@ def er():
             ("user_id", "PK"), ("username", "UQ"), ("password_hash", ""),
             ("full_name", ""), ("role", "")]),
 
+        "order_materials": (370, 790, "web", [
+            ("order_id", "PK·FK"), ("material_id", "PK·FK"), ("quantity", "")]),
+
         "resource_pools": (370, 110, "data", [
             ("pool_id", "PK"), ("pool_name", "UQ"), ("total_units", ""),
-            ("available_units", "")]),
+            ("available_units", ""), ("auto_managed", "")]),
         "production_orders": (370, 320, "web", [
             ("order_id", "PK"), ("product_name", ""), ("quantity", ""),
             ("arrival_time", ""), ("execution_time", ""), ("priority", ""),
-            ("deadline", ""), ("required_machine_type", ""), ("status", "")]),
+            ("deadline", ""), ("required_machine_type", ""), ("status", ""),
+            ("materials_taken", "")]),
 
         "order_resource_claims": (710, 110, "data", [
             ("order_id", "PK·FK"), ("pool_id", "PK·FK"),
-            ("allocated_units", ""), ("max_units", "")]),
+            ("allocated_units", ""), ("max_units", ""), ("requested_units", "")]),
         "resource_allocations": (710, 330, "api", [
             ("allocation_id", "PK"), ("order_id", "FK"), ("machine_id", "FK"),
             ("worker_id", "FK"), ("status", ""), ("allocated_at", "")]),
@@ -308,6 +313,8 @@ def er():
         ("schedule_entries", "production_orders", "order_id"),
         ("maintenance_records", "machines", "machine_id"),
         ("inventory_transactions", "inventory", "material_id"),
+        ("order_materials", "production_orders", "order_id"),
+        ("order_materials", "inventory", "material_id"),
     ]
 
     def anchor_pts(a, b):
