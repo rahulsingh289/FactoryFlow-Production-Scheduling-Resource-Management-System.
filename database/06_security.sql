@@ -37,4 +37,4 @@ FLUSH PRIVILEGES;
 SHOW GRANTS FOR 'factory_app';
 SHOW GRANTS FOR 'factory_readonly';
 
-SELECT 'Roles and users created. Point backend/.env at factory_service for least privilege.' AS status;
+SELECT 'Roles and users created. Start the app once with an admin user first (it creates and updates the tables), then point backend/.env at factory_service for least privilege.' AS status;
