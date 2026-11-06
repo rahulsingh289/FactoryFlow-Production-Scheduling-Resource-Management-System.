@@ -14,9 +14,6 @@ backend/.env
 .env
 .env.local
 
-# Vercel CLI project link / pulled env vars
-.vercel
-
 # planning / report docs — kept locally, not pushed to the repo
 docs/IMPLEMENTATION_STATUS.md
 docs/DESIGN.md

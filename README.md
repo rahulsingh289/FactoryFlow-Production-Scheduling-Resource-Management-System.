@@ -68,7 +68,7 @@ viva is in [`database/queries.sql`](database/queries.sql).
 
 ### Prerequisites
 - **Node.js 18+** and npm
-- **g++** (C++17) — `g++` on Linux/macOS, MinGW-w64 on Windows
+- **g++** (C++17) and **make** — both come with the developer tools on Linux/macOS, MinGW-w64 on Windows
 - **MySQL 8+**
 
 ### Run it
@@ -79,7 +79,8 @@ separate terminals:
 ```bash
 # 1. Build the C++ OS engine
 cd engine
-g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine     # factory_engine.exe on Windows
+make                 # builds ./factory_engine (finds every .cpp under src/ by itself)
+# no make?  g++ -std=c++17 -O2 -Iinclude $(find src -name '*.cpp') -o factory_engine
 
 # 2. Configure the backend: set DB_PASSWORD and JWT_SECRET in backend/.env
 cd ../backend
@@ -104,7 +105,7 @@ test a Banker's request, but can't add, edit or delete orders, machines, workers
 stock or pools, or grant and release resources.
 
 - With nothing set, every new account is a manager (fine on your own machine).
-- Set `MANAGER_CODE` in `backend/.env` (or in Vercel) and new accounts become
+- Set `MANAGER_CODE` in `backend/.env` and new accounts become
   view-only unless they enter that code when creating the account. The form only
   shows the code box when one is set.
 
@@ -118,6 +119,9 @@ stock or pools, or grant and release resources.
 - An order can be **edited** until it is completed. A running order keeps its machine
   type, and an order whose materials were used keeps its materials.
 - Pages **refresh by themselves** every few seconds while the tab is open.
+- Order numbers have limits so the scheduler can't be made to run for ever: execution
+  time up to 100,000, arrival time and deadline up to 1,000,000, quantity up to
+  1,000,000. A scheduler run that still takes more than 10 seconds is stopped.
 
 ### The database
 The backend sets up MySQL by itself each time it starts:
@@ -134,6 +138,12 @@ restart the backend. The only file it doesn't load is
 ```bash
 mysql -u root -p < database/06_security.sql   # optional
 ```
+
+After that you can point `backend/.env` at the data-only account it creates
+(`factory_service`). Start the app once with an admin account first, because that
+is what creates and updates the tables. A data-only account can run the app but
+can't change the schema, and it just logs a warning if it finds the views or
+triggers missing.
 
 If MySQL can't be reached the backend still starts, on an empty in-memory store
 that is lost when it stops.
@@ -220,43 +230,43 @@ Build the engine first.
 ## Project structure
 
 ```
-.
-├── engine/                 C++ OS engine (scheduling, Banker's, deadlock)
-│   ├── include/            headers  (scheduling.h, bankers.h)
-│   └── src/                main.cpp, scheduling.cpp, bankers.cpp
-├── backend/                Node + Express REST API
-│   ├── .env.example
+factoryflow/
+├── backend/                  Node + Express REST API
+│   ├── .env.example          settings to copy into .env
+│   ├── scripts/              check-database.js  (tests a database before you deploy)
+│   ├── test/                 engine, API, roles and order tests   (npm test)
 │   └── src/
-│       ├── server.js
-│       ├── app.js          Express app (shared by server.js and Vercel)
-│       ├── routes/         auth · catalog · os · reports
-│       ├── middleware/     auth.js (JWT) · rateLimit.js
-│       ├── services/       engine.js (C++ bridge)
-│       └── db/             index.js (connect + migrate) · memoryStore.js
-│           └── repo/       one file per area: orders · machines · workers · inventory
-│                           pools · bankers · scheduling · reports · users · shared
-│   └── test/               engine.test.js · api.test.js   (npm test)
-├── database/               MySQL — numbered in load order
-│   ├── 01_schema.sql   02_seed.sql    03_views.sql
+│       ├── server.js         starts the server
+│       ├── app.js            builds the Express app (also serves the built website)
+│       ├── routes/           one file per area: orders · machines · workers · inventory
+│       │                     pools · scheduling · bankers · reports · auth  (+ helpers)
+│       ├── middleware/       auth.js (sign-in token, roles) · rateLimit.js
+│       ├── services/         engine.js  (talks to the C++ engine)
+│       └── db/               index.js (connect + set up) · memoryStore.js
+│           └── repo/         data access, one file per area (MySQL and in-memory)
+├── database/                 MySQL, numbered in load order
+│   ├── 01_schema.sql  02_seed.sql  03_views.sql
 │   ├── 04_procedures.sql  05_triggers.sql  06_security.sql
-│   └── queries.sql         query pack for the viva
-├── frontend/               React + Vite dashboard
+│   └── queries.sql           query pack for the viva
+├── engine/                   C++ engine (scheduling, Banker's, deadlock)
+│   ├── Makefile              `make` builds the engine
+│   ├── include/              headers, in the same folders as src/
 │   └── src/
-│       ├── App.jsx  main.jsx  api.js  useLive.js  style.css
-│       ├── components/     ui.jsx · icons.jsx
-│       └── pages/          Home · Login · Dashboard · Orders · Scheduler · Machines
-│                           Workers · Resources · Bankers · Reports
-├── docs/
-│   ├── DEPLOY.md           deploying to Vercel
-│   └── diagrams/           HLD · LLD · ER (SVG + generator)
-├── api/index.js            Vercel serverless entry point (wraps backend/src/app.js)
-└── vercel.json             Vercel build/deploy config
+│       ├── main.cpp          reads the command name and hands over
+│       ├── commands/         schedule · bankers · deadlock  (read input, print JSON)
+│       ├── scheduling/       simulator · resources · feasibility · metrics · policy_factory
+│       │   └── policies/     one file per algorithm: fcfs · sjf · srtf · priority
+│       │                     priority_preemptive · round_robin
+│       ├── bankers/          safety · request · deadlock · bankers
+│       └── util/             json
+├── frontend/                 React + Vite website
+│   └── src/
+│       ├── main.jsx  App.jsx
+│       ├── pages/            Home · Login · Dashboard · Orders · Scheduler · Machines
+│       │                     Workers · Resources · Bankers · Reports
+│       ├── components/       ui.jsx · icons.jsx
+│       ├── lib/              api.js (talks to the server) · useLive.js (auto-refresh)
+│       └── styles/           base · layout · components · pages · auth · home · responsive
+├── docs/diagrams/            HLD · LLD · ER diagrams (SVG)
+└── package.json              start / build / test shortcuts
 ```
-
----
-
-## Deploying to Vercel
-
-See [docs/DEPLOY.md](docs/DEPLOY.md) for the full guide. Short version:
-push to GitHub, import the repo on vercel.com, add your cloud MySQL
-credentials and a `JWT_SECRET` as Environment Variables, click Deploy.

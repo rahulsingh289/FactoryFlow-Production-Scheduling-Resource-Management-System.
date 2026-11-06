@@ -2,9 +2,15 @@
   "name": "smart-factory-production-scheduler",
   "private": true,
   "version": "1.0.0",
-  "description": "Vercel deployment root. Wires the React frontend, the Express/MySQL backend (as a serverless function) and the C++ OS engine into one project. See README.md for local development; see docs/DEPLOY.md for deployment.",
+  "description": "Smart Factory Production Scheduler: a React frontend, an Express/MySQL backend and a C++ engine in one repository. See README.md.",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "build": "cd engine && g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine && cd ../frontend && npm run build",
+    "start": "npm --prefix backend start",
+    "build": "npm run build:engine && npm run build:frontend",
+    "build:engine": "make -C engine",
+    "build:frontend": "cd frontend && npm install --include=dev && npm run build",
     "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
     "test": "npm --prefix backend test"
   }
