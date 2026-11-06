@@ -11,7 +11,18 @@ function memData() {
   return mem;
 }
 const isMysql = () => state.mode === 'mysql';
-const q = (sql, params) => state.pool.query(sql, params);
+// A hosted database closes connections that sat idle, and the app only finds out
+// when it next uses one. A query that fails for that reason
+// never ran, so it is simply tried again on a fresh connection.
+const CONNECTION_LOST = new Set(['PROTOCOL_CONNECTION_LOST', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT']);
+async function q(sql, params) {
+  try {
+    return await state.pool.query(sql, params);
+  } catch (e) {
+    if (!CONNECTION_LOST.has(e.code)) throw e;
+    return state.pool.query(sql, params);
+  }
+}
 
 // An error the API should show to the client as-is, with this HTTP status.
 const httpError = (status, message) => Object.assign(new Error(message), { status });
@@ -69,8 +80,9 @@ async function inTransaction(work) {
       await conn.commit();
       return result;
     } catch (e) {
-      await conn.rollback();
-      if (e.code !== 'ER_LOCK_DEADLOCK' || attempt === DEADLOCK_ATTEMPTS) throw e;
+      await conn.rollback().catch(() => {});   // a lost connection can't roll back; the server already did
+      const retryable = e.code === 'ER_LOCK_DEADLOCK' || CONNECTION_LOST.has(e.code);
+      if (!retryable || attempt === DEADLOCK_ATTEMPTS) throw e;
     } finally {
       conn.release();
     }

@@ -78,13 +78,14 @@ const shortage = (rows) => rows
 // shortage stops the order from starting at all. Runs after the machine and
 // worker are claimed, so locks are always taken in the same order.
 async function takeMaterialsTx(conn, order) {
-  if (order.materials_taken) return;
+  if (order.materials_taken || order.material_rows === 0) return;
   const [needs] = await conn.query(
     `SELECT om.material_id, om.quantity, i.material_name, i.quantity_available
      FROM order_materials om JOIN inventory i ON i.material_id = om.material_id
      WHERE om.order_id = ? ORDER BY om.material_id FOR UPDATE`,
     [order.order_id]
   );
+  if (!needs.length) return;   // no materials: nothing to check, take or record
   const missing = shortage(needs);
   if (missing.length) throw httpError(409, `Not enough stock to start. ${missing.join('; ')}.`);
   for (const n of needs) {
@@ -168,13 +169,11 @@ async function countOrdersByStatus() {
 }
 
 async function getOrder(id) {
-  let order;
   if (isMysql()) {
-    const [rows] = await q('SELECT * FROM production_orders WHERE order_id = ?', [id]);
-    order = rows[0];
-  } else {
-    order = memData().orders.find((o) => o.order_id === id);
+    const [[rows], byOrder] = await Promise.all([q('SELECT * FROM production_orders WHERE order_id = ?', [id]), materialsByOrder([id])]);
+    return rows[0] ? withMaterials(rows[0], byOrder) : null;
   }
+  const order = memData().orders.find((o) => o.order_id === id);
   return order ? withMaterials(order, await materialsByOrder([id])) : null;
 }
 
@@ -223,16 +222,17 @@ const noWorkerMessage = (order) => (order.required_machine_type
 // two orders starting together can't both take the last slot or deadlock.
 async function allocateTx(conn, order) {
   const typed = order.required_machine_type ? ' AND machine_type = ?' : '';
+  // The machines are locked; each row also carries how many slots are already in use
+  // (read in the same statement, which saves a round trip).
   const [machines] = await conn.query(
-    `SELECT machine_id, capacity, machine_type FROM machines
-     WHERE status <> 'MAINTENANCE'${typed} ORDER BY machine_id FOR UPDATE`,
+    `SELECT m.machine_id, m.capacity, m.machine_type,
+            (SELECT COUNT(*) FROM resource_allocations a
+             WHERE a.machine_id = m.machine_id AND a.status = 'ALLOCATED') AS used
+     FROM machines m
+     WHERE m.status <> 'MAINTENANCE'${typed.replace('machine_type', 'm.machine_type')} ORDER BY m.machine_id FOR UPDATE`,
     typed ? [order.required_machine_type] : []
   );
-  const [active] = await conn.query(
-    `SELECT machine_id, COUNT(*) AS used FROM resource_allocations
-     WHERE status = 'ALLOCATED' AND machine_id IS NOT NULL GROUP BY machine_id`
-  );
-  const used = new Map(active.map((a) => [a.machine_id, a.used]));
+  const used = new Map(machines.map((m) => [m.machine_id, Number(m.used)]));
   const free = machines.filter((m) => (used.get(m.machine_id) || 0) < m.capacity);
   if (!free.length) throw httpError(409, noMachineMessage(order));
 
@@ -256,18 +256,22 @@ async function allocateTx(conn, order) {
   const [pools] = await conn.query(
     'SELECT pool_id, pool_name, auto_managed, available_units FROM resource_pools ORDER BY pool_id FOR UPDATE'
   );
-  for (const pool of pools.filter((p) => usesPool(p, machine.machine_type))) {
-    const [[claim]] = await conn.query(
-      'SELECT allocated_units FROM order_resource_claims WHERE order_id = ? AND pool_id = ? FOR UPDATE',
-      [order.order_id, pool.pool_id]
+  const needed = pools.filter((p) => usesPool(p, machine.machine_type));
+  if (needed.length) {
+    const [held] = await conn.query(
+      'SELECT pool_id, allocated_units FROM order_resource_claims WHERE order_id = ? AND pool_id IN (?) FOR UPDATE',
+      [order.order_id, needed.map((p) => p.pool_id)]
     );
-    if (!claim?.allocated_units && pool.available_units < 1) {
-      throw httpError(409, `All ${pool.pool_name} are reserved on the Safety & Deadlock page.`);
+    const holds = new Map(held.map((c) => [c.pool_id, c.allocated_units]));
+    for (const pool of needed) {
+      if (!holds.get(pool.pool_id) && pool.available_units < 1) {
+        throw httpError(409, `All ${pool.pool_name} are reserved on the Safety & Deadlock page.`);
+      }
     }
     await conn.query(
-      `INSERT INTO order_resource_claims (order_id, pool_id, allocated_units, max_units) VALUES (?, ?, 1, 1)
+      `INSERT INTO order_resource_claims (order_id, pool_id, allocated_units, max_units) VALUES ?
        ON DUPLICATE KEY UPDATE allocated_units = GREATEST(allocated_units, 1), max_units = GREATEST(max_units, 1)`,
-      [order.order_id, pool.pool_id]
+      [needed.map((p) => [order.order_id, p.pool_id, 1, 1])]
     );
   }
   await recomputePools(conn);
@@ -350,11 +354,15 @@ function memRelease(d, orderId) {
 
 // Moving an order to RUNNING claims a machine and a worker (409 if none is
 // free); moving it to any other state gives them back.
-async function updateOrderStatus(id, status) {
-  await syncFactoryPools();
+async function updateOrderStatus(id, status, { returnOrder = true } = {}) {
+  await syncFactoryPools({ maxAgeMs: 2000 });
   if (isMysql()) {
     await inTransaction(async (conn) => {
-      const [[order]] = await conn.query('SELECT * FROM production_orders WHERE order_id = ? FOR UPDATE', [id]);
+      const [[order]] = await conn.query(
+        `SELECT o.*, (SELECT COUNT(*) FROM order_materials om WHERE om.order_id = o.order_id) AS material_rows
+         FROM production_orders o WHERE o.order_id = ? FOR UPDATE`,
+        [id]
+      );
       if (!order) throw httpError(404, 'Order not found.');
       if (order.status === status) return;
       assertTransition(order.status, status);
@@ -366,7 +374,7 @@ async function updateOrderStatus(id, status) {
       }
       await conn.query('UPDATE production_orders SET status = ? WHERE order_id = ?', [status, id]);
     });
-    return getOrder(id);
+    return returnOrder ? getOrder(id) : null;
   }
   const d = memData();
   const o = d.orders.find((x) => x.order_id === id);
@@ -437,7 +445,7 @@ async function updateOrder(id, fields, materials) {
   const typeChanges = (order) => 'required_machine_type' in fields && !sameType(fields.required_machine_type, order.required_machine_type);
 
   if (isMysql()) {
-    await syncFactoryPools();
+    await syncFactoryPools({ maxAgeMs: 2000 });
     await inTransaction(async (conn) => {
       const [[order]] = await conn.query('SELECT * FROM production_orders WHERE order_id = ? FOR UPDATE', [id]);
       if (!order) throw httpError(404, 'Order not found.');

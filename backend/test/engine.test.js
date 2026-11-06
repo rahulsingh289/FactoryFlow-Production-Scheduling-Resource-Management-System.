@@ -1,6 +1,6 @@
 // Tests for the C++ engine (scheduling, Banker's Algorithm, deadlock detection).
 // They only need the compiled binary, not a database.
-//   cd engine && g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine
+//   cd engine && make
 //   cd backend && npm test
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -9,7 +9,7 @@ const engine = require('../src/services/engine');
 const ALGORITHMS = ['FCFS', 'SJF', 'SRTF', 'PRIORITY', 'PRIORITYP', 'RR'];
 
 test('the engine binary is built', () => {
-  assert.ok(engine.engineAvailable(), 'build it first: cd engine && g++ -std=c++17 -Iinclude src/*.cpp -o factory_engine');
+  assert.ok(engine.engineAvailable(), 'build it first: cd engine && make');
 });
 
 // ----------------------------- scheduling ----------------------------------
@@ -91,6 +91,15 @@ test('every policy produces a valid schedule on random factories', async () => {
   }
 });
 
+test('every algorithm reports its own name, and an unknown name runs as FCFS', async () => {
+  const procs = [{ pid: 1, arrival: 0, burst: 3, priority: 2, machine_type: null }];
+  const res = { machines: [{ machine_id: 1, machine_type: 'Saw', capacity: 1 }], workers: [{ worker_id: 1 }] };
+  for (const name of ALGORITHMS) {
+    assert.equal((await engine.schedule(name, 2, procs, res)).algorithm, name);
+  }
+  assert.equal((await engine.schedule('NOT-AN-ALGORITHM', 2, procs, res)).algorithm, 'FCFS');
+});
+
 test('FCFS on one machine and one worker runs orders in arrival order', async () => {
   const processes = [
     { pid: 1, arrival: 0, burst: 5, priority: 3, machine_type: null },
@@ -167,6 +176,20 @@ test('a specialist is used before a worker who can run anything', async () => {
     [{ pid: 1, arrival: 0, burst: 2, priority: 3, machine_type: 'Saw' }],
     { machines: [{ machine_id: 1, machine_type: 'Saw', capacity: 1 }], workers: [{ worker_id: 5 }, { worker_id: 6, machine_type: 'Saw' }] });
   assert.equal(r.gantt[0].worker, 6);
+});
+
+test('times too large for the scheduler are refused instead of running for ever', async () => {
+  const res = { machines: [{ machine_id: 1, machine_type: 'Saw', capacity: 1 }], workers: [{ worker_id: 1 }] };
+  const started = Date.now();
+  await assert.rejects(
+    engine.schedule('RR', 1, [{ pid: 1, arrival: 0, burst: 500_000_000, priority: 3, machine_type: null }], res),
+    (err) => err.status === 422 && /too large/.test(err.message)
+  );
+  assert.ok(Date.now() - started < 2000, 'refused straight away');
+  await assert.rejects(
+    engine.schedule('FCFS', 1, [{ pid: 1, arrival: 1_000_000, burst: 1_000_000, priority: 3 }, ...Array.from({ length: 3000 }, (_, i) => ({ pid: i + 2, arrival: 0, burst: 1_000_000, priority: 3 }))], res),
+    (err) => err.status === 422
+  );
 });
 
 // ------------------------------ Banker's -----------------------------------

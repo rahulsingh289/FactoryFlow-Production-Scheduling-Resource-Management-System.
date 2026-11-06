@@ -42,16 +42,31 @@ function planPoolChanges(pools, totals) {
 }
 
 async function readPoolPlan(run) {
-  const [machines] = await run('SELECT machine_type, capacity, status FROM machines');
-  const [workers] = await run('SELECT status FROM workers');
-  const [pools] = await run(
-    `SELECT p.pool_id, p.pool_name, p.total_units, p.available_units, p.auto_managed,
-            IFNULL(SUM(c.allocated_units), 0) AS used
-     FROM resource_pools p LEFT JOIN order_resource_claims c ON c.pool_id = p.pool_id AND c.allocated_units > 0
-     GROUP BY p.pool_id`
-  );
+  // Independent reads go out together: against a database that is far away, one
+  // round trip is much cheaper than three.
+  const [[machines], [workers], [pools]] = await Promise.all([
+    run('SELECT machine_type, capacity, status FROM machines'),
+    run('SELECT status FROM workers'),
+    run(
+      `SELECT p.pool_id, p.pool_name, p.total_units, p.available_units, p.auto_managed,
+              IFNULL(SUM(c.allocated_units), 0) AS used
+       FROM resource_pools p LEFT JOIN order_resource_claims c ON c.pool_id = p.pool_id AND c.allocated_units > 0
+       GROUP BY p.pool_id`
+    ),
+  ]);
   return planPoolChanges(pools, factoryPoolTotals(machines, workers));
 }
+
+// Starting several orders in a row would otherwise re-check the pools before every
+// one. A caller that can live with a check from the last couple of seconds passes
+// maxAgeMs. Anything that changes machines, workers or pools through this server
+// calls invalidatePoolSync, so those changes are always picked up straight away.
+let lastSyncAt = 0;
+const invalidatePoolSync = () => { lastSyncAt = 0; };
+// Wraps a function that changes the factory, so the next order start re-checks the pools.
+const changesFactory = (fn) => async (...args) => {
+  try { return await fn(...args); } finally { invalidatePoolSync(); }
+};
 
 // Every active order gets a claim row for every pool, including pools newer than it.
 const MISSING_CLAIMS = `
@@ -62,13 +77,16 @@ const MISSING_CLAIMS = `
   LEFT JOIN order_resource_claims c ON c.order_id = o.order_id AND c.pool_id = p.pool_id
   WHERE o.status <> 'COMPLETED' AND c.order_id IS NULL`;
 
-async function syncFactoryPools() {
+async function syncFactoryPools({ maxAgeMs = 0 } = {}) {
   if (!isMysql()) return memSyncFactoryPools(memData());
+  if (maxAgeMs && Date.now() - lastSyncAt < maxAgeMs) return;
 
   // Nearly every call finds nothing to do, so look first without taking locks.
-  const plan = await readPoolPlan(q);
-  const [[{ missing }]] = await q(`SELECT COUNT(*) AS missing FROM (${MISSING_CLAIMS}) m`, [WORKERS_POOL]);
-  if (!plan.add.length && !plan.update.length && !plan.remove.length && !missing) return;
+  const [plan, [[{ missing }]]] = await Promise.all([
+    readPoolPlan(q),
+    q(`SELECT COUNT(*) AS missing FROM (${MISSING_CLAIMS}) m`, [WORKERS_POOL]),
+  ]);
+  if (!plan.add.length && !plan.update.length && !plan.remove.length && !missing) { lastSyncAt = Date.now(); return; }
 
   await inTransaction(async (conn) => {
     await lockPools(conn);
@@ -92,6 +110,7 @@ async function syncFactoryPools() {
       [WORKERS_POOL]
     );
   });
+  lastSyncAt = Date.now();
 }
 
 function memSyncFactoryPools(d) {
@@ -151,4 +170,7 @@ async function deletePool(id) {
   d.claims = d.claims.filter((c) => c.pool_id !== id);
 }
 
-module.exports = { listPools, syncFactoryPools, addPool, deletePool };
+module.exports = {
+  listPools, syncFactoryPools, invalidatePoolSync, changesFactory,
+  addPool: changesFactory(addPool), deletePool: changesFactory(deletePool),
+};

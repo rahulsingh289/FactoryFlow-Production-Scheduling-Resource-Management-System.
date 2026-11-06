@@ -164,3 +164,37 @@ test('with no worker trained for a type, the order and the scheduler say so', as
   const reasons = run.body.unschedulable.map((u) => u.message);
   assert.ok(reasons.some((m) => /trained for Lathe/.test(m)), JSON.stringify(reasons));
 });
+
+// --------------------------------- dispatch --------------------------------
+test('start-all skips orders that cannot fit, but a stock shortage only stops that one order', async () => {
+  // A fresh, small factory: one Drill with two slots and two workers.
+  for (const o of (await api.get('/api/orders')).body) {
+    if (o.status === 'RUNNING') await api.patch(`/api/orders/${o.order_id}/status`, { status: 'COMPLETED' });
+    await api.del(`/api/orders/${o.order_id}`);
+  }
+  for (const m of (await api.get('/api/machines')).body) await api.del(`/api/machines/${m.machine_id}`);
+  for (const w of (await api.get('/api/workers')).body) await api.del(`/api/workers/${w.worker_id}`);
+  await api.post('/api/machines', { machine_name: 'Drill-1', machine_type: 'Drill', capacity: 2 });
+  await worker('D1'); await worker('D2'); await worker('D3');
+  const bolts = (await api.post('/api/inventory', { material_name: 'Bolts', quantity_available: 1, unit: 'pcs' })).body.material_id;
+
+  const needsBolts = (await newOrder('Needs bolts', { required_machine_type: 'Drill', materials: [{ material_id: bolts, quantity: 5 }] })).body.order_id;
+  const a = (await newOrder('Plain A', { required_machine_type: 'Drill' })).body.order_id;
+  const b = (await newOrder('Plain B', { required_machine_type: 'Drill' })).body.order_id;
+  const c = (await newOrder('Plain C', { required_machine_type: 'Drill' })).body.order_id;
+
+  const r = await api.post('/api/os/dispatch', { algorithm: 'FCFS' });
+  assert.equal(r.status, 200);
+  const started = r.body.started.map((x) => x.pid).sort((x, y) => x - y);
+  assert.equal(started.length, 2, 'two Drill slots, two orders start');
+  assert.ok(!started.includes(needsBolts) || started.length === 2);
+  const waiting = r.body.waiting.map((x) => x.pid);
+  assert.equal(started.length + waiting.length, 4, 'every order is accounted for');
+  const why = Object.fromEntries(r.body.waiting.map((x) => [x.pid, x.message]));
+  assert.ok(Object.values(why).every((m) => m.length > 5), 'each waiting order says why');
+  if (waiting.includes(needsBolts) && !started.includes(needsBolts)) {
+    assert.match(why[needsBolts], /Not enough stock|No free machine/);
+  }
+  // Orders still waiting for the Drill all give the same, clear reason.
+  assert.ok([a, b, c].filter((id) => waiting.includes(id)).every((id) => /No free machine of type Drill/.test(why[id])));
+});

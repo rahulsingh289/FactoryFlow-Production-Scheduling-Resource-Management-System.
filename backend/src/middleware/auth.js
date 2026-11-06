@@ -11,11 +11,6 @@ const jwt = require('jsonwebtoken');
 const PLACEHOLDER = 'change-this-secret-for-production';
 const fromEnv = process.env.JWT_SECRET;
 const hasSecret = Boolean(fromEnv) && fromEnv !== PLACEHOLDER;
-// Serverless instances each start fresh, so a random secret would give every
-// instance its own and sign users out at random. Refuse to start instead.
-if (!hasSecret && process.env.VERCEL) {
-  throw new Error('JWT_SECRET is not set. Add it under Environment Variables in the Vercel project settings.');
-}
 const SECRET = hasSecret ? fromEnv : crypto.randomBytes(48).toString('hex');
 if (!hasSecret) {
   console.warn('[auth] JWT_SECRET not set in backend/.env — using a random secret for this run (sessions will not survive a restart).');

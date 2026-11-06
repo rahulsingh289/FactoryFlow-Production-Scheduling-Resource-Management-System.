@@ -1,4 +1,5 @@
 // Machines.
+const { changesFactory } = require('./pools');
 const { memData, isMysql, q, httpError, inTransaction } = require('./shared');
 
 // ------------------------------- Machines ----------------------------------
@@ -76,4 +77,4 @@ async function deleteMachine(id) {
   d.machines = d.machines.filter((m) => m.machine_id !== id);
 }
 
-module.exports = { listMachines, updateMachineStatus, addMachine, deleteMachine };
+module.exports = { listMachines, updateMachineStatus: changesFactory(updateMachineStatus), addMachine: changesFactory(addMachine), deleteMachine: changesFactory(deleteMachine) };

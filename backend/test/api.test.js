@@ -253,3 +253,19 @@ test('the order list stays small, counts are complete, and safety is one call', 
   assert.equal(dash.totalOrders, all.length);
   assert.ok(Array.isArray(dash.machines) && Array.isArray(dash.workers));
 });
+
+test('absurd numbers are refused, so the scheduler can never be made to hang', async () => {
+  assert.equal((await order('Huge', { execution_time: 500_000_000 })).status, 400);
+  assert.equal((await order('Huge', { execution_time: 100_001 })).status, 400);
+  assert.equal((await order('Huge', { arrival_time: 2_000_000_000 })).status, 400);
+  assert.equal((await order('Huge', { quantity: 2_000_000_000 })).status, 400);
+  assert.equal((await order('Big but fine', { execution_time: 100_000, deadline: 1_000_000 })).status, 201);
+  const id = (await get('/api/orders')).body.find((o) => o.product_name === 'Big but fine').order_id;
+  assert.equal((await patch(`/api/orders/${id}`, { execution_time: 999_999_999 })).status, 400, 'edits are limited too');
+  assert.equal((await del(`/api/orders/${id}`)).status, 200);
+});
+
+test('a very long password is refused', async () => {
+  const r = await call('POST', '/api/auth/register', { full_name: 'Long', username: 'longpass', email: 'long@example.com', password: 'x'.repeat(200) }, false);
+  assert.equal(r.status, 400);
+});

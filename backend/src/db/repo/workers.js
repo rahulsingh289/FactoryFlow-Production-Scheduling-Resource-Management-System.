@@ -1,4 +1,5 @@
 // Workers.
+const { changesFactory } = require('./pools');
 const { memData, isMysql, q, httpError, inTransaction } = require('./shared');
 
 // -------------------------------- Workers ----------------------------------
@@ -84,4 +85,4 @@ async function deleteWorker(id) {
   d.workers = d.workers.filter((x) => x.worker_id !== id);
 }
 
-module.exports = { listWorkers, addWorker, updateWorkerMachineType, updateWorkerStatus, deleteWorker };
+module.exports = { listWorkers, addWorker: changesFactory(addWorker), updateWorkerMachineType: changesFactory(updateWorkerMachineType), updateWorkerStatus: changesFactory(updateWorkerStatus), deleteWorker: changesFactory(deleteWorker) };

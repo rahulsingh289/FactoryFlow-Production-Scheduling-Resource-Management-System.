@@ -92,6 +92,16 @@ async function prepareDatabase(baseConfig) {
   if (!/^\w+$/.test(database)) throw new Error('DB_NAME may only contain letters, numbers and underscores.');
 
   const conn = await mysql.createConnection(serverOnly);
+  // Several servers can start at the same moment against one empty database, and each
+  // would try to build the same tables. A named
+  // lock makes them take turns: the first builds, the rest find it done and move on.
+  // A server that doesn't offer locks is simply set up without one.
+  const lockName = `factoryflow_setup_${database}`;
+  let locked = false;
+  try {
+    const [[got]] = await conn.query('SELECT GET_LOCK(?, 60) AS got', [lockName]);
+    locked = got.got === 1;
+  } catch { /* no lock support: carry on */ }
   try {
     const [tables] = await conn.query(
       `SELECT COUNT(*) AS n FROM information_schema.tables
@@ -119,9 +129,15 @@ async function prepareDatabase(baseConfig) {
       );
     }
 
-    // Same as table 14 in database/01_schema.sql.
-    await conn.query(
-      `CREATE TABLE IF NOT EXISTS \`${database}\`.order_materials (
+    // Same as table 14 in database/01_schema.sql. Looked up first, so a database
+    // that has it needs no CREATE privilege (a data-only user, see 06_security.sql,
+    // can then start the app).
+    const [[{ n: hasMaterials }]] = await conn.query(
+      "SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_schema = ? AND table_name = 'order_materials'",
+      [database]
+    );
+    if (!hasMaterials) await conn.query(
+      `CREATE TABLE \`${database}\`.order_materials (
          order_id    INT NOT NULL,
          material_id INT NOT NULL,
          quantity    INT NOT NULL,
@@ -144,17 +160,20 @@ async function prepareDatabase(baseConfig) {
     if (triggers[0].n === 0) {
       console.log('[db] loading views, procedures and triggers...');
       await conn.query(`USE \`${database}\``);
-      await runSqlFile(conn, '03_views.sql', database);
-      // A hosted database may refuse these. The API keeps pool balances right
-      // without them, so that costs the stock ledger, not the whole app.
+      // A hosted database may refuse these, and so does an account that can only read
+      // and write rows (it can't even see triggers, so they look missing). If an
+      // admin already created them, the app works as it is, so this only warns.
       try {
+        await runSqlFile(conn, '03_views.sql', database);
         await runSqlFile(conn, '04_procedures.sql', database);
         await runSqlFile(conn, '05_triggers.sql', database);
       } catch (err) {
-        console.warn(`[db] could not create routines or triggers: ${err.message}`);
+        console.warn(`[db] could not create views, routines or triggers: ${err.message}`);
+        console.warn('[db] If this account is meant to be data-only, that is fine. Otherwise run the app once with an admin account.');
       }
     }
   } finally {
+    if (locked) await conn.query('SELECT RELEASE_LOCK(?)', [lockName]).catch(() => {});
     await conn.end();
   }
 }
@@ -172,6 +191,12 @@ async function init() {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'smart_factory',
+    // Most hosted MySQL services only accept encrypted connections. Set DB_SSL=true
+    // for those. If yours uses its own certificate authority and the connection is
+    // refused with a certificate error, DB_SSL_VERIFY=false skips that check.
+    ...(/^(1|true|yes)$/i.test(process.env.DB_SSL || '')
+      ? { ssl: { minVersion: 'TLSv1.2', rejectUnauthorized: process.env.DB_SSL_VERIFY !== 'false' } }
+      : {}),
   };
 
   try {
@@ -179,9 +204,12 @@ async function init() {
     state.pool = mysql.createPool({
       ...baseConfig,
       waitForConnections: true,
-      // Each serverless instance opens its own pool, and hosted databases allow
-      // few connections in total, so Vercel gets a small one.
-      connectionLimit: Number(process.env.DB_POOL_SIZE) || (process.env.VERCEL ? 3 : 10),
+      // Free hosted databases allow few connections in total: lower this with
+      // DB_POOL_SIZE if yours does. Hosted databases also close idle connections, so
+      // connections are kept alive.
+      connectionLimit: Number(process.env.DB_POOL_SIZE) || 10,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
     });
     await state.pool.query('SELECT 1');
     state.mode = 'mysql';

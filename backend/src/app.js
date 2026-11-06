@@ -1,11 +1,13 @@
 // =========================================================================
 //  Smart Factory Production Scheduler — Express app
 //  Builds the Express app (routes, middleware, error handling) without
-//  starting an HTTP listener. Used by:
-//    - server.js      (local dev: creates the app, then app.listen())
-//    - /api/index.js  (Vercel: wraps the same app as a serverless function)
-//  Keeping this split means the exact same routing code runs in both places.
+//  starting an HTTP listener. server.js starts it with app.listen(), the tests
+//  start it on a free port.
+//  When the website has been built (frontend/dist), the app serves it too, so one
+//  server runs the whole project (`npm run build`, then `npm start`).
 // =========================================================================
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
@@ -26,15 +28,19 @@ async function createApp() {
 
   const app = express();
   app.disable('x-powered-by');
-  // Behind Vercel's proxy every request would otherwise look like it comes from
-  // one address, and the sign-in rate limit would be shared by all users.
-  if (process.env.VERCEL || process.env.TRUST_PROXY) app.set('trust proxy', 1);
+  // Behind a reverse proxy every request would otherwise look like it comes from one
+  // address, and the sign-in rate limit would be shared by all users. Set
+  // TRUST_PROXY=1 when running behind one.
+  if (process.env.TRUST_PROXY) app.set('trust proxy', 1);
   app.use(cors());
   app.use(express.json());
   app.use((req, res, next) => {
     res.set({ 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer' });
     next();
   });
+  // Answers from the API are live data (and may be private): never let a browser or a
+  // proxy keep a copy.
+  app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 
   // Health / status (shows which DB mode and whether the C++ engine is built)
   app.get('/api/health', (req, res) => {
@@ -49,13 +55,22 @@ async function createApp() {
   app.use('/api/auth', require('./routes/auth'));
 
   // Everything past this point needs a signed-in user.
-  app.use('/api', requireAuth);
-  app.use('/api', require('./routes/catalog'));
-  app.use('/api/os', require('./routes/os'));
-  app.use('/api/reports', require('./routes/reports'));
+  app.use('/api', requireAuth, require('./routes'));
 
   // Anything under /api that no route handled.
   app.use('/api', (req, res) => res.status(404).json({ error: 'Not found.' }));
+
+  // The built website, when there is one (after `npm run build`).
+  // Files in /assets have hashed names, so browsers may keep them; index.html must
+  // always be fetched fresh so a new deploy is picked up.
+  const site = path.join(__dirname, '..', '..', 'frontend', 'dist');
+  if (fs.existsSync(path.join(site, 'index.html'))) {
+    app.use(express.static(site, {
+      index: false,
+      setHeaders: (res, file) => res.set('Cache-Control', file.includes(`${path.sep}assets${path.sep}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+    }));
+    app.get('*', (req, res) => res.set('Cache-Control', 'no-cache').sendFile(path.join(site, 'index.html')));
+  }
 
   // Central error handler. Full detail always goes to the server console;
   // the client only ever sees a generic message, so internal detail (SQL

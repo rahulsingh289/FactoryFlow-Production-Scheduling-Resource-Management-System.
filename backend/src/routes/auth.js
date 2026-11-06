@@ -66,8 +66,11 @@ router.post('/register', authLimiter, async (req, res, next) => {
       else if (!codeMatches(given)) return res.status(400).json({ error: 'That manager code is not right.' });
     }
 
-    if (await repo.findUserByUsername(username)) return res.status(409).json({ error: 'That username is already taken.' });
-    if (await repo.findUserByEmail(email)) return res.status(409).json({ error: 'An account with that email already exists.' });
+    if (password.length > 128) return res.status(400).json({ error: 'Password can be at most 128 characters.' });
+
+    const [byName, byEmail] = await Promise.all([repo.findUserByUsername(username), repo.findUserByEmail(email)]);
+    if (byName) return res.status(409).json({ error: 'That username is already taken.' });
+    if (byEmail) return res.status(409).json({ error: 'An account with that email already exists.' });
 
     let user;
     try {

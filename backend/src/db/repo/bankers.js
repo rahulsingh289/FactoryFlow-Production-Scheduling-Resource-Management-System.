@@ -13,33 +13,31 @@ const { syncFactoryPools } = require('./pools');
 async function getBankersData({ conn = null } = {}) {
   if (!conn) await syncFactoryPools();
   const run = conn ? (sql) => conn.query(sql) : q;
-  const pools = isMysql()
-    ? (await run('SELECT * FROM resource_pools ORDER BY pool_id'))[0]
-    : [...memData().pools].sort((a, b) => a.pool_id - b.pool_id);
-  const poolIds = pools.map((p) => p.pool_id);
-
-  // Finished orders hold nothing and want nothing, so they aren't processes any more.
-  let orders, claimLookup;
+  let pools, orders, claimLookup;
   if (isMysql()) {
-    const [os] = await run(
-      `SELECT order_id, product_name, status FROM production_orders
-       WHERE status <> 'COMPLETED' ORDER BY order_id`
-    );
-    orders = os;
-    // Finished orders keep their claim rows, but hold and want nothing: skip them.
-    const [claims] = await run(
-      `SELECT c.order_id, c.pool_id, c.allocated_units, c.max_units, c.requested_units
-       FROM order_resource_claims c JOIN production_orders o ON o.order_id = c.order_id
-       WHERE o.status <> 'COMPLETED'`
-    );
+    // Finished orders hold nothing and want nothing, so they aren't processes any
+    // more, and neither are their (all-zero) claim rows. The three reads go out together.
+    const [[poolRows], [orderRows], [claims]] = await Promise.all([
+      run('SELECT * FROM resource_pools ORDER BY pool_id'),
+      run(`SELECT order_id, product_name, status FROM production_orders WHERE status <> 'COMPLETED' ORDER BY order_id`),
+      run(
+        `SELECT c.order_id, c.pool_id, c.allocated_units, c.max_units, c.requested_units
+         FROM order_resource_claims c JOIN production_orders o ON o.order_id = c.order_id
+         WHERE o.status <> 'COMPLETED'`
+      ),
+    ]);
+    pools = poolRows;
+    orders = orderRows;
     claimLookup = claims;
   } else {
+    pools = [...memData().pools].sort((a, b) => a.pool_id - b.pool_id);
     const d = memData();
     orders = d.orders.filter((o) => o.status !== 'COMPLETED')
       .map((o) => ({ order_id: o.order_id, product_name: o.product_name, status: o.status }));
     claimLookup = d.claims;
   }
 
+  const poolIds = pools.map((p) => p.pool_id);
   const byOrder = new Map();
   for (const c of claimLookup) {
     if (!byOrder.has(c.order_id)) byOrder.set(c.order_id, {});

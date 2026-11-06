@@ -44,11 +44,11 @@ async function recordScheduleRun(run, entries) {
         [run.algorithm, run.quantum, run.avgWaiting, run.avgTurnaround, run.avgResponse, run.throughput, run.makespan]
       );
       const runId = res.insertId;
-      for (const e of entries) {
+      if (entries.length) {
         await conn.query(
           `INSERT INTO schedule_entries (run_id, order_id, start_time, completion_time, waiting_time, turnaround_time, response_time, missed_deadline)
-           VALUES (?,?,?,?,?,?,?,?)`,
-          [runId, e.order_id, e.start, e.completion, e.waiting, e.turnaround, e.response, e.missed_deadline ? 1 : 0]
+           VALUES ?`,
+          [entries.map((e) => [runId, e.order_id, e.start, e.completion, e.waiting, e.turnaround, e.response, e.missed_deadline ? 1 : 0])]
         );
       }
       await conn.commit();
