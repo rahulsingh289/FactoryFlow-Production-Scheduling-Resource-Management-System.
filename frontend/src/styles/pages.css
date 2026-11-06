@@ -1,0 +1,48 @@
+/* Page-specific parts: scheduler and Gantt chart, charts, resource pools, Safety & Deadlock, order form. */
+
+.scheduler-controls { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.queue-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.queue-chip { border: 1px solid var(--border); background: #f8fafc; border-radius: 6px; padding: 5px 10px; font-size: 13px; display: flex; gap: 6px; }
+.dispatch-result { margin-top: 14px; padding: 12px 14px; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; gap: 3px; }
+.gantt-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.gantt-label { width: 130px; font-size: 13px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gantt-lane { position: relative; flex: 1; height: 28px; background: #f1f4f9; border-radius: 6px; }
+.gantt-bar { position: absolute; top: 3px; height: 22px; border-radius: 5px; color: #fff; font-size: 12px; display: grid; place-items: center; min-width: 2px; }
+.gantt-axis { position: relative; height: 18px; margin-left: 140px; border-top: 1px solid var(--border); }
+.gantt-tick { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--muted); padding-top: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.legend-item i { width: 11px; height: 11px; display: inline-block; }
+.best-badge { background: var(--green); color: #fff; font-size: 11px; padding: 1px 5px; border-radius: 3px; margin-left: 6px; }
+.gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-top: 12px; }
+.gauge { border: 1px solid var(--border); background: #f8fafc; padding: 10px 12px; border-radius: 8px; }
+.gauge-top b { font-size: 17px; }
+.gauge-top span { font-size: 12px; color: var(--muted); }
+.gauge-bar { height: 7px; background: #e5e7eb; margin-top: 6px; border-radius: 4px; overflow: hidden; }
+.gauge-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+.donut-wrap { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.donut { width: 120px; height: 120px; border-radius: 50%; position: relative; }
+.donut::after { content: ''; position: absolute; inset: 22px; background: #fff; border-radius: 50%; }
+.donut-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; z-index: 1; }
+.donut-center b { font-size: 22px; }
+.donut-center span { font-size: 11px; color: var(--muted); }
+.legend-list { display: flex; flex-direction: column; gap: 6px; }
+.legend-row { display: flex; align-items: center; gap: 8px; }
+.legend-row i { width: 10px; height: 10px; display: inline-block; }
+.legend-row b { margin-left: auto; }
+.units-table th small { display: block; font-weight: normal; color: var(--muted); text-transform: none; letter-spacing: 0; }
+.units-table td { vertical-align: top; }
+.edit-row td { background: #f8fafc; }
+.edit-box { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.edit-box label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.edit-box input { width: 70px; }
+.ask-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.ask-form label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.ask-form input[type=number] { width: 80px; }
+.gauge-wrap { position: relative; }
+.gauge-remove { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; padding: 0; display: grid; place-items: center; background: none; border: none; color: var(--muted); cursor: pointer; border-radius: 4px; }
+.gauge-remove:hover { background: var(--red-bg); color: var(--red); }
+.materials-box { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; }
+.material-row { display: flex; gap: 8px; align-items: center; }
+.material-row select { flex: 1; max-width: 360px; }
+.material-row input { width: 90px; }

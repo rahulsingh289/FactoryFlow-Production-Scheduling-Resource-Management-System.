@@ -29,18 +29,24 @@ export function setSession(token, user) {
   } catch { /* ignore storage errors (private mode) */ }
 }
 export function clearSession() {
-  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch {}
+  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch { /* ignore storage errors */ }
 }
 
 async function request(method, path, body) {
   const headers = { 'Content-Type': 'application/json' };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(path, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(30000),   // never wait for ever
+    });
+  } catch (e) {
+    throw new Error(e.name === 'TimeoutError' ? 'The server took too long to answer. Please try again.' : 'Could not reach the server. Check your connection and try again.');
+  }
   const text = await res.text();
   // A gateway or crash can answer with a plain error page instead of JSON.
   let data = null;

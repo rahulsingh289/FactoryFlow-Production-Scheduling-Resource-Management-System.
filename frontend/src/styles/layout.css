@@ -1,0 +1,29 @@
+/* The app shell: sidebar, top bar, page area and the card grids. */
+
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 232px; background: var(--blue); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+.brand { padding: 18px 16px; font-size: 17px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+.brand-mark { width: 34px; height: 34px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.brand-name { font-size: 17px; font-weight: bold; }
+nav { flex: 1; padding: 0 10px 8px; overflow-y: auto; }
+.nav-group-label { font-size: 11px; color: #8d9bb3; padding: 16px 18px 6px; letter-spacing: .5px; }
+.nav-item { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; background: none; border: none; color: #cbd5e1; padding: 9px 12px; margin-bottom: 2px; border-radius: 7px; font-size: 14px; cursor: pointer; font-family: inherit; }
+.nav-item svg { flex-shrink: 0; opacity: .85; }
+.nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+.nav-item.active { background: var(--accent); color: #fff; font-weight: 600; }
+.sidebar-foot { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.1); }
+.user-row { display: flex; align-items: center; gap: 10px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: #475569; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: bold; flex-shrink: 0; }
+.user-meta { flex: 1; min-width: 0; }
+.user-meta b { display: block; font-size: 13px; }
+.user-meta span { font-size: 11px; color: #94a3b8; text-transform: capitalize; }
+.main { flex: 1; min-width: 0; }
+.topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 16px 28px; display: flex; align-items: center; gap: 16px; }
+.topbar-title h2 { font-size: 21px; font-weight: 600; }
+.topbar-title p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+.page { padding: 24px 28px 48px; max-width: 1340px; }
+.stack { display: flex; flex-direction: column; gap: 22px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.grid-2 > *, .grid-3 > * { min-width: 0; }
+.role-note { margin-left: auto; font-size: 12px; color: var(--amber); background: var(--amber-bg); border-radius: 4px; padding: 6px 10px; }

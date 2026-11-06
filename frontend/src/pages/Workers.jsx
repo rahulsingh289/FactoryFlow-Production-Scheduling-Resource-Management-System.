@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { api, isManager } from '../api';
-import useLive from '../useLive';
+import { useState } from 'react';
+import { api, isManager } from '../lib/api';
+import useLive from '../lib/useLive';
 import { Card, Tile, StatusBadge, Empty, Icon } from '../components/ui';
 
 const STATUSES = ['AVAILABLE', 'OFF_SHIFT'];

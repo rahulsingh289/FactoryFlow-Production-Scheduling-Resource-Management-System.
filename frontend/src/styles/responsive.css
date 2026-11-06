@@ -1,0 +1,20 @@
+/* Smaller screens. Loaded last so it can override the rules above. */
+
+@media (min-width: 1200px) { .metric-row-6 { grid-template-columns: repeat(6, 1fr); } }
+
+/* Side-by-side cards need room; below this they stack so tables aren't squeezed. */
+@media (max-width: 1150px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+@media (max-width: 800px) {
+  .app { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; }
+  .nav-item svg { display: none; }
+  .tile { padding: 12px; }
+  nav { display: flex; flex-wrap: wrap; padding: 4px; }
+  .nav-group-label { display: none; }
+  .nav-item { width: auto; padding: 6px 10px; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .page { padding: 14px; }
+  .gantt-label { width: 80px; }
+  .gantt-axis { margin-left: 90px; }
+}
+@media (max-width: 600px) { .metric-row-6 { grid-template-columns: repeat(2, 1fr); } }

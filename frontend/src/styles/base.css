@@ -1,0 +1,31 @@
+/* Colours and basic page styles, shared by everything. */
+
+:root {
+  --shadow: 0 1px 3px rgba(16, 24, 40, .08), 0 1px 2px rgba(16, 24, 40, .04);
+  --blue: #1e293b;
+  --blue-light: #e8effd;
+  --accent: #2f6fed;
+  --accent-dark: #2459c9;
+  --bg: #f4f6fa;
+  --white: #ffffff;
+  --border: #e3e7ee;
+  --text: #222222;
+  --muted: #6b7280;
+  --green: #15803d;
+  --green-bg: #dcfce7;
+  --red: #b91c1c;
+  --red-bg: #fee2e2;
+  --amber: #a16207;
+  --amber-bg: #fef3c7;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.45; background: var(--bg); color: var(--text); }
+h1, h2, h3 { margin: 0; }
+code { font-family: Consolas, monospace; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.danger { color: var(--red); }
+.success { color: var(--green); }
+.nowrap { white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }

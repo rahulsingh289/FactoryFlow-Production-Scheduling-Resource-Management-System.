@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { api, ALGORITHMS, isManager } from '../api';
-import useLive from '../useLive';
+import { useState } from 'react';
+import { api, ALGORITHMS, isManager } from '../lib/api';
+import useLive from '../lib/useLive';
 import { Card, Tile, StatusBadge, Empty, Icon, orderTag } from '../components/ui';
 
 const EMPTY = { product_name: '', quantity: 10, arrival_time: 0, execution_time: 5, priority: 3, deadline: 20, required_machine_type: '' };
@@ -139,13 +139,13 @@ export default function Orders() {
             <form className="form-grid" onSubmit={saveOrder}>
               {editing && <div className="form-note">Editing {orderTag(editing.order_id)} {editing.product_name}{typeLocked ? '. It is running, so its machine type can\'t change.' : ''}</div>}
               <label>Product<input value={form.product_name} onChange={set('product_name')} required placeholder="e.g. Office Chair" /></label>
-              <label>Quantity<input type="number" min="1" value={form.quantity} onChange={set('quantity')} /></label>
-              <label>Arrival time<input type="number" min="0" value={form.arrival_time} onChange={set('arrival_time')} /></label>
-              <label>Execution (burst)<input type="number" min="1" value={form.execution_time} onChange={set('execution_time')} /></label>
+              <label>Quantity<input type="number" min="1" max="1000000" value={form.quantity} onChange={set('quantity')} /></label>
+              <label>Arrival time<input type="number" min="0" max="1000000" value={form.arrival_time} onChange={set('arrival_time')} /></label>
+              <label>Execution (burst)<input type="number" min="1" max="100000" value={form.execution_time} onChange={set('execution_time')} /></label>
               <label>Priority (1 = high)
                 <select value={form.priority} onChange={set('priority')}>{[1,2,3,4,5].map((p) => <option key={p} value={p}>{p}</option>)}</select>
               </label>
-              <label>Deadline<input type="number" min="0" value={form.deadline} onChange={set('deadline')} /></label>
+              <label>Deadline<input type="number" min="0" max="1000000" value={form.deadline} onChange={set('deadline')} /></label>
               <label>Machine type
                 <select value={form.required_machine_type} onChange={set('required_machine_type')} disabled={typeLocked}>
                   <option value="">Any machine</option>

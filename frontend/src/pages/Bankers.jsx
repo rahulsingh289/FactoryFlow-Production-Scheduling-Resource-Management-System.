@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { api, isManager } from '../api';
-import useLive from '../useLive';
+import { api, isManager } from '../lib/api';
+import useLive from '../lib/useLive';
 import { Card, Empty, Icon, orderTag } from '../components/ui';
 
 const shortName = (pool) => pool.pool_name.replace(/ slots$/i, '');

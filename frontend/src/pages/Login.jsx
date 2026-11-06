@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { api, setSession } from '../api';
+import { useEffect, useState } from 'react';
+import { api, setSession } from '../lib/api';
 import Icon from '../components/icons';
 
 const EMPTY = { full_name: '', username: '', email: '', password: '', manager_code: '' };

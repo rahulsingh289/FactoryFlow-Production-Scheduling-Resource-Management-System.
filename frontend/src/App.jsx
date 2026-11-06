@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getUser, clearSession } from './api';
+import { getUser, clearSession } from './lib/api';
 import Icon from './components/icons';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -11,6 +11,24 @@ import Workers from './pages/Workers';
 import Resources from './pages/Resources';
 import Bankers from './pages/Bankers';
 import Reports from './pages/Reports';
+
+// If a page hits an unexpected error while drawing, show this instead of a blank screen.
+class PageCrash extends React.Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(error) { console.error('Page error:', error); }
+  componentDidUpdate(prev) { if (prev.pageId !== this.props.pageId && this.state.failed) this.setState({ failed: false }); }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div className="card"><div className="card-body">
+        <h2>Something went wrong on this page</h2>
+        <p className="muted">Your data is safe. Reload the page, or open another page from the menu.</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>Reload</button>
+      </div></div>
+    );
+  }
+}
 
 const NAV = [
   { group: 'Operations', items: [
@@ -90,7 +108,7 @@ export default function App() {
           <div className="topbar-title"><h2>{active.title}</h2><p>{active.desc}</p></div>
           {user.role !== 'MANAGER' && <div className="role-note">View-only account. You can start and finish orders and run the scheduler.</div>}
         </header>
-        <div className="page"><Current /></div>
+        <div className="page"><PageCrash pageId={active.id}><Current /></PageCrash></div>
       </main>
     </div>
   );

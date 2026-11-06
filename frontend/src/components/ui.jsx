@@ -1,5 +1,4 @@
 // Shared UI building blocks for the dashboard.
-import React from 'react';
 import Icon from './icons';
 
 const PALETTE = ['#2563eb', '#16a34a', '#dc2626', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#65a30d'];

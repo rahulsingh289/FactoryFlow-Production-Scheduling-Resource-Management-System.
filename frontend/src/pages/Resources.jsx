@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { api, isManager } from '../api';
-import useLive from '../useLive';
+import { useState } from 'react';
+import { api, isManager } from '../lib/api';
+import useLive from '../lib/useLive';
 import { Card, Gauge, Empty, Icon } from '../components/ui';
 
 function AddButton({ open, onClick, label }) {

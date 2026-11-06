@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { api } from '../api';
+import { useEffect, useState } from 'react';
+import { api } from '../lib/api';
 import { Card, Gauge, StatusBadge, Empty, Icon, runTag } from '../components/ui';
 
 const TABS = [['performance', 'Performance'], ['history', 'History']];

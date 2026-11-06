@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { api, ALGORITHMS } from '../api';
-import useLive from '../useLive';
+import { useEffect, useState } from 'react';
+import { api, ALGORITHMS } from '../lib/api';
+import useLive from '../lib/useLive';
 import { Card, Tile, Gantt, Empty, Icon, colorFor, orderTag, runTag } from '../components/ui';
 
 const METRICS = [

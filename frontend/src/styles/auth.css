@@ -1,0 +1,22 @@
+/* The sign-in and sign-up screen. */
+
+.auth-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); padding: 20px; }
+.auth-top { position: absolute; top: 14px; left: 18px; }
+.auth-card { width: 100%; max-width: 380px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 6px 24px rgba(16,24,40,.08); padding: 30px; display: flex; flex-direction: column; gap: 12px; }
+.auth-card h2 { text-align: center; color: var(--blue); font-size: 22px; margin-bottom: 4px; }
+.auth-seg { width: 100%; }
+.auth-seg button { flex: 1; }
+.auth-submit { padding: 9px; }
+.auth-switch { text-align: center; margin: 0; font-size: 13px; }
+.auth-switch button, .link-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 13px; font-family: inherit; }
+.auth-page { background: linear-gradient(160deg, #eef2fb 0%, #f4f6fa 60%); }
+.auth-card { max-width: 400px; padding: 32px; gap: 14px; }
+.auth-head { text-align: center; margin-bottom: 6px; }
+.auth-head .brand-mark { margin: 0 auto 12px; width: 46px; height: 46px; border-radius: 12px; color: #fff; }
+.auth-head h2 { font-size: 22px; margin-bottom: 4px; }
+.auth-head p { margin: 0; color: var(--muted); font-size: 13px; }
+.auth-pass { position: relative; display: block; }
+.auth-pass input { width: 100%; padding-right: 56px; }
+.auth-show { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--accent); font-size: 13px; cursor: pointer; font-family: inherit; }
+.auth-card input { width: 100%; }
+.auth-submit { justify-content: center; padding: 10px; font-size: 15px; }

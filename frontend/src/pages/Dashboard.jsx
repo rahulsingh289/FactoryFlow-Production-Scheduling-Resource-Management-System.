@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { api } from '../api';
-import useLive from '../useLive';
+import { useState } from 'react';
+import { api } from '../lib/api';
+import useLive from '../lib/useLive';
 import { Card, Tile, Donut, StatusBadge, Empty, Icon } from '../components/ui';
 
 const STATE_COLORS = { READY: '#3f6ea0', RUNNING: '#4a8a5a', BLOCKED: '#9a6f17', COMPLETED: '#8c8777' };
