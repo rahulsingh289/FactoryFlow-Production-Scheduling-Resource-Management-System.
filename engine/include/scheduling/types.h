@@ -1,5 +1,5 @@
-#ifndef SCHEDULING_H
-#define SCHEDULING_H
+#ifndef FACTORY_SCHEDULING_TYPES_H
+#define FACTORY_SCHEDULING_TYPES_H
 
 #include <string>
 #include <vector>
@@ -63,18 +63,5 @@ struct ScheduleResult {
     double throughput    = 0.0;                // processes per unit time
     int    makespan      = 0;                  // total time from 0 to last completion
 };
-
-// algorithm: FCFS | SJF | SRTF | PRIORITY | PRIORITYP | RR
-// quantum is used only by RR (ignored otherwise).
-//
-// Machines and workers are limited resources. An order only runs while it holds
-// one machine slot of its required type and one worker trained for that machine
-// type, so several orders can run in parallel but never more than the factory
-// can staff and equip.
-ScheduleResult runSchedule(std::vector<Process> procs,
-                           const std::vector<Machine>& machines,
-                           const std::vector<Worker>& workers,
-                           const std::string& algorithm,
-                           int quantum);
 
 #endif
